@@ -1,2 +1,44 @@
-node_modules/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# 가상환경
+venv/
+.venv/
+env/
+.env/
+
+# 환경 변수
 .env
+.env.local
+.env.*.local
+
+# 설정 및 개인 데이터
+*.json
+!package.json
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 로그
+*.log
+
+# Node (레거시 파일용)
+node_modules/
