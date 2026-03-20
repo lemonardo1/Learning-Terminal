@@ -1708,8 +1708,8 @@ def show_lesson_list(ltype: str, lessons: list):
         if raw.isdigit() and 1 <= int(raw) <= total:
             chosen = lessons[int(raw)-1]
             run_lesson_flow(ltype, chosen)
-            cont = input(f"\n  계속 학습하시겠습니까? [y/n]: ").strip().lower()
-            if cont != "y":
+            cont = input(f"\n  계속 학습하시겠습니까? [\033[4mY\033[0m/n]: ").strip().lower()
+            if cont not in ("", "y"):
                 return
 
 def learning_menu(ltype: str):
@@ -1751,10 +1751,10 @@ def learning_menu(ltype: str):
                 pause()
             else:
                 run_lesson_flow(ltype, next_lesson)
-                print(f"\n  계속 학습하시겠습니까? [y/n]: ", end="", flush=True)
-                cont = getch().lower()
-                print(cont)
-                if cont != "y":
+                print(f"\n  계속 학습하시겠습니까? [\033[4mY\033[0m/n]: ", end="", flush=True)
+                cont = getch()
+                print(cont if cont not in ("\r", "\n") else "")
+                if cont.lower() not in ("y", "\r", "\n"):
                     return
         elif choice == "2":
             show_lesson_list(ltype, lessons)
