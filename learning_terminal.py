@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 """터미널 학습 도우미 | Python 3 only — stdlib only"""
 
-import os, sys, json, re
+import os, sys, json, re, tty, termios, time
 from datetime import date, timedelta
 import getpass
+
+def getch():
+    """엔터 없이 키 하나를 읽는다."""
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        return sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 # ── ANSI colours ──────────────────────────────────────────────────────────────
 R  = "\033[0m"
@@ -28,6 +38,32 @@ def hr():
 
 def pause():
     input(f"\n{DM}  Enter를 눌러 계속...{R}")
+
+_ANSI_RE = re.compile(r'\033\[[0-9;]*[mABCDEFGHJKSTfn]')
+
+def typewrite(text, duration=2.0):
+    """ANSI 코드를 보존하면서 전체 텍스트를 duration초 안에 타이핑 효과로 출력."""
+    visible_len = max(len(_ANSI_RE.sub('', text).replace('\n', '')), 1)
+    delay = duration / visible_len
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch == '\033' and i + 1 < len(text) and text[i + 1] == '[':
+            j = i + 2
+            while j < len(text) and text[j] not in 'mABCDEFGHJKSTfn':
+                j += 1
+            sys.stdout.write(text[i:j + 1])
+            sys.stdout.flush()
+            i = j + 1
+        elif ch == '\n':
+            sys.stdout.write(ch)
+            sys.stdout.flush()
+            i += 1
+        else:
+            sys.stdout.write(ch)
+            sys.stdout.flush()
+            time.sleep(delay)
+            i += 1
 
 # ── Storage paths ─────────────────────────────────────────────────────────────
 CFG_DIR      = os.path.expanduser("~/.config/learning-terminal")
@@ -1590,7 +1626,9 @@ def run_quiz(quiz: dict) -> bool:
             print(f"  {cy}{idx+1}.{R} {choice}")
         print()
         while True:
-            raw = input(f"  답 입력 (1~{len(quiz['choices'])}): ").strip()
+            print(f"  답 입력 (1~{len(quiz['choices'])}): ", end="", flush=True)
+            raw = getch()
+            print(raw)
             if raw.isdigit() and 1 <= int(raw) <= len(quiz["choices"]):
                 chosen = int(raw) - 1
                 break
@@ -1621,7 +1659,7 @@ def run_lesson_flow(ltype: str, lesson: dict) -> bool:
         clr()
         hr()
         print(f"\n  {CY}{B}{lesson['name']}{R}\n")
-        print(lesson["content"])
+        typewrite(lesson["content"])
         hr()
         input(f"\n  {DM}Enter를 눌러 퀴즈를 시작하세요...{R}")
 
@@ -1643,7 +1681,9 @@ def run_lesson_flow(ltype: str, lesson: dict) -> bool:
         else:
             print(f"  {RD}아직 조금 더 공부가 필요합니다.{R}")
             print(f"  {DM}점수 {score}/{len(lesson['quizzes'])} — 통과 기준: 1점 이상{R}")
-            again = input(f"\n  레슨을 다시 읽어보시겠습니까? [y/n]: ").strip().lower()
+            print(f"\n  레슨을 다시 읽어보시겠습니까? [y/n]: ", end="", flush=True)
+            again = getch().lower()
+            print(again)
             if again != "y":
                 return False
 
@@ -1699,7 +1739,9 @@ def learning_menu(ltype: str):
         print(f"  {cy}2.{R} 레슨 목록 보기")
         print(f"  {cy}0.{R} 뒤로 가기")
         hr()
-        choice = input(f"\n  선택: ").strip()
+        print(f"\n  선택: ", end="", flush=True)
+        choice = getch()
+        print(choice)
 
         if choice == "0":
             return
@@ -1709,7 +1751,9 @@ def learning_menu(ltype: str):
                 pause()
             else:
                 run_lesson_flow(ltype, next_lesson)
-                cont = input(f"\n  계속 학습하시겠습니까? [y/n]: ").strip().lower()
+                print(f"\n  계속 학습하시겠습니까? [y/n]: ", end="", flush=True)
+                cont = getch().lower()
+                print(cont)
                 if cont != "y":
                     return
         elif choice == "2":
@@ -1825,7 +1869,9 @@ def settings_menu():
         print(f"  {cy}3.{R} 활성 AI 선택   [{GR}{active}{R}]")
         print(f"  {cy}0.{R} 뒤로 가기")
         hr()
-        choice = input(f"\n  선택: ").strip()
+        print(f"\n  선택: ", end="", flush=True)
+        choice = getch()
+        print(choice)
         if choice == "0":
             return
         elif choice == "1":
@@ -1845,7 +1891,9 @@ def settings_menu():
         elif choice == "3":
             print(f"\n  {cy}1.{R} Claude")
             print(f"  {cy}2.{R} OpenAI")
-            sel = input("  선택: ").strip()
+            print("  선택: ", end="", flush=True)
+            sel = getch()
+            print(sel)
             if sel == "1":
                 cfg["active_ai"] = "claude"
             elif sel == "2":
@@ -1886,7 +1934,9 @@ def main_menu():
         print(f"  {cy}0.{R} 종료")
         hr()
 
-        choice = input(f"\n  선택: ").strip()
+        print(f"\n  선택: ", end="", flush=True)
+        choice = getch()
+        print(choice)
 
         if choice == "0":
             print(f"\n  {GR}종료합니다. 오늘도 수고하셨습니다!{R}\n")
