@@ -61,6 +61,10 @@ terminal
 └── progress.json    # 학습 진도
 ```
 
+## Thanks to.
+
+Vim 아이디어를 준 (서울대학교 차수현)[https://github.com/soohyuncha], 연세대학교 이경민에게 감사를 표합니다.
+
 ## 라이선스
 
 [MIT License](LICENSE)
