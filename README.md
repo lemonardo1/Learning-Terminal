@@ -63,7 +63,7 @@ terminal
 
 ## Thanks to.
 
-Vim 아이디어를 준 [서울대학교 차수현](https://github.com/soohyuncha), 연세대학교 이경민에게 감사를 표합니다.
+Vim 아이디어를 준 [서울대학교 차수현](https://github.com/soohyuncha), [연세대학교 이경민](https://github.com/margaretlee35)에게 감사를 표합니다.
 
 ## 라이선스
 
