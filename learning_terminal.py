@@ -955,6 +955,310 @@ TERMINAL_LESSONS = [
             },
         ],
     },
+    {
+        "id": "find",
+        "name": "find: 파일/디렉터리 검색",
+        "summary": "find 명령어로 파일시스템에서 조건에 맞는 파일을 강력하게 검색합니다.",
+        "content": f"""{CY}{B}  find — 파일/디렉터리 검색{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}find{R}는 파일시스템을 탐색하며 조건에 맞는 파일을 찾습니다.
+  grep이 파일 내용을 검색한다면, find는 파일 자체를 검색합니다.
+
+  {B}📌 기본 문법{R}
+{yl}  $ find [경로] [조건] [동작]{R}
+
+  {B}📌 이름으로 검색{R}
+{yl}  $ find . -name "*.py"{R}           {DM}# 현재 폴더에서 .py 파일{R}
+{yl}  $ find ~ -name "notes.txt"{R}      {DM}# 홈 디렉터리에서 파일 찾기{R}
+{yl}  $ find . -iname "*.TXT"{R}         {DM}# 대소문자 무시 검색{R}
+
+  {B}📌 종류로 검색{R}
+{yl}  $ find . -type f{R}               {DM}# 파일만 검색{R}
+{yl}  $ find . -type d{R}               {DM}# 디렉터리만 검색{R}
+
+  {B}📌 크기/날짜로 검색{R}
+{yl}  $ find . -size +1M{R}             {DM}# 1MB 초과 파일{R}
+{yl}  $ find . -mtime -7{R}             {DM}# 7일 이내 수정된 파일{R}
+{yl}  $ find . -newer reference.txt{R}  {DM}# reference.txt 보다 최신 파일{R}
+
+  {B}📌 검색 + 동작{R}
+{yl}  $ find . -name "*.log" -delete{R}  {DM}# 찾아서 삭제{R}
+{yl}  $ find . -name "*.py" -exec wc -l {{}} \\;{R}
+  {DM}  → 각 .py 파일의 줄 수 출력{R}
+
+  {B}📌 유용한 조합{R}
+{yl}  $ find . -name "*.py" | xargs grep "TODO"{R}
+  {DM}  → 모든 .py 파일에서 TODO 검색{R}
+
+  {B}💡 팁{R}
+  {DM}  find / -name 처럼 루트부터 찾으면 느립니다. 범위를 좁히세요.{R}
+  {DM}  2>/dev/null 을 붙이면 권한 오류 메시지를 숨길 수 있습니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "현재 디렉터리에서 .py 파일만 찾는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    'grep -r ".py" .',
+                    'find . -name "*.py"',
+                    'ls -r "*.py"',
+                    'locate "*.py"',
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "find에서 디렉터리만 검색하는 옵션은?",
+                "type": "choice",
+                "choices": ["-type d", "-type f", "-kind dir", "-d only"],
+                "answer": 0,
+            },
+        ],
+    },
+    {
+        "id": "chmod_chown",
+        "name": "chmod/chown: 권한 변경",
+        "summary": "chmod로 파일 권한을, chown으로 파일 소유자를 변경합니다.",
+        "content": f"""{CY}{B}  chmod / chown — 파일 권한 변경{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}chmod{R} = {CY}change mode{R}  |  {B}chown{R} = {CY}change owner{R}
+
+  {B}📌 권한 구조 복습{R}
+{DM}  -rwxr-xr--{R}
+   {cy}d{R}{gr}rwx{R}{yl}r-x{R}{rd}r--{R}
+   {cy}↑유형{R} {gr}↑소유자{R} {yl}↑그룹{R} {rd}↑기타{R}
+
+  {B}📌 권한 숫자 표기{R}
+  {gr}r{R}=4  {gr}w{R}=2  {gr}x{R}=1
+  {cy}7{R} = rwx(4+2+1)  {cy}6{R} = rw-(4+2)  {cy}5{R} = r-x(4+1)  {cy}4{R} = r--(4)
+
+  {B}📌 chmod 사용법{R}
+{yl}  $ chmod 755 script.sh{R}     {DM}# 소유자 rwx, 그룹/기타 r-x{R}
+{yl}  $ chmod 644 data.txt{R}      {DM}# 소유자 rw-, 그룹/기타 r--{R}
+{yl}  $ chmod +x run.sh{R}         {DM}# 실행 권한 추가{R}
+{yl}  $ chmod -w file.txt{R}       {DM}# 쓰기 권한 제거{R}
+{yl}  $ chmod -R 755 myfolder/{R}  {DM}# 폴더 전체 재귀 적용{R}
+
+  {B}📌 chown 사용법{R}
+{yl}  $ chown alice file.txt{R}           {DM}# 소유자를 alice로{R}
+{yl}  $ chown alice:staff file.txt{R}     {DM}# 소유자:그룹 함께 변경{R}
+{yl}  $ sudo chown -R www-data /var/www{R} {DM}# 재귀 소유자 변경{R}
+
+  {B}📌 자주 쓰는 권한 조합{R}
+  {cy}755{R}  실행 스크립트, 디렉터리 표준
+  {cy}644{R}  일반 파일 표준 (소유자만 쓰기)
+  {cy}600{R}  개인 파일 (SSH 키 등)
+  {cy}777{R}  {RD}모두에게 모든 권한 — 보안상 위험!{R}
+
+  {B}💡 팁{R}
+  {DM}  chmod +x script.sh 후 ./script.sh 로 직접 실행합니다.{R}
+  {DM}  SSH 키 파일(.pem)은 chmod 400 이어야 접속 가능합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "chmod 755 에서 소유자의 권한은?",
+                "type": "choice",
+                "choices": ["r--", "rw-", "r-x", "rwx"],
+                "answer": 3,
+            },
+            {
+                "q": "스크립트에 실행 권한을 추가하는 명령어는?",
+                "type": "choice",
+                "choices": ["chmod +r script.sh", "chmod +w script.sh", "chmod +x script.sh", "chmod +a script.sh"],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "ps_kill",
+        "name": "ps/kill: 프로세스 관리",
+        "summary": "ps로 실행 중인 프로세스를 확인하고, kill로 프로세스를 종료합니다.",
+        "content": f"""{CY}{B}  ps / kill — 프로세스 관리{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}ps{R}  = {CY}process status{R}  — 실행 중인 프로세스 목록
+  {B}kill{R} = 프로세스에 신호 전송 (주로 종료)
+
+  {B}📌 ps 사용법{R}
+{yl}  $ ps{R}                    {DM}# 현재 터미널의 프로세스{R}
+{yl}  $ ps aux{R}                {DM}# 시스템 전체 프로세스 (상세){R}
+{yl}  $ ps aux | grep python{R}  {DM}# python 프로세스만 필터{R}
+
+  {B}📌 ps aux 출력 형식{R}
+{DM}  USER  PID  %CPU %MEM  ...  COMMAND{R}
+{DM}  name  1234  0.0  0.1  ...  python3 server.py{R}
+  {cy}PID{R} = 프로세스 ID (각 프로세스의 고유 번호)
+
+  {B}📌 kill 사용법{R}
+{yl}  $ kill 1234{R}             {DM}# PID 1234 프로세스 종료 요청{R}
+{yl}  $ kill -9 1234{R}          {DM}# PID 1234 강제 종료{R}
+{yl}  $ kill -l{R}               {DM}# 사용 가능한 신호 목록{R}
+
+  {B}📌 주요 신호{R}
+  {gr}SIGTERM (15){R}  정상 종료 요청 — 기본값
+  {RD}SIGKILL  (9){R}  즉시 강제 종료 — 무시 불가
+
+  {B}📌 killall / pkill{R}
+{yl}  $ killall python3{R}       {DM}# 이름으로 모든 프로세스 종료{R}
+{yl}  $ pkill -f "server.py"{R}  {DM}# 명령어 패턴으로 종료{R}
+
+  {B}📌 실전 흐름{R}
+{yl}  $ ps aux | grep server.py{R}
+{gr}  name  5678  2.1  0.5  ... python3 server.py{R}
+{yl}  $ kill -9 5678{R}          {DM}# 강제 종료{R}
+
+  {B}💡 팁{R}
+  {DM}  kill -9 보다 kill 을 먼저 시도하세요 (clean 종료).{R}
+  {DM}  top 또는 htop 명령어로 실시간 프로세스 모니터링도 가능합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "시스템 전체 프로세스를 상세히 보는 명령어는?",
+                "type": "choice",
+                "choices": ["ps -e", "ps aux", "ps -l", "ps all"],
+                "answer": 1,
+            },
+            {
+                "q": "kill -9 와 kill 의 차이는?",
+                "type": "choice",
+                "choices": [
+                    "kill -9 는 9번 반복 종료, kill 은 1번",
+                    "kill -9 는 강제 즉시 종료, kill 은 정상 종료 요청",
+                    "kill -9 는 그룹 종료, kill 은 단일 종료",
+                    "kill -9 는 파일 삭제, kill 은 프로세스 정지",
+                ],
+                "answer": 1,
+            },
+        ],
+    },
+    {
+        "id": "tar",
+        "name": "tar: 압축과 해제",
+        "summary": "tar 명령어로 파일을 묶고 압축하거나, 압축된 아카이브를 해제합니다.",
+        "content": f"""{CY}{B}  tar — 압축과 해제{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}tar{R}는 {CY}Tape ARchive{R}의 약자입니다.
+  여러 파일을 하나로 묶고, gzip/bzip2로 압축할 수 있습니다.
+
+  {B}📌 압축하기{R}
+{yl}  $ tar -czf archive.tar.gz myfolder/{R}   {DM}# gzip 압축{R}
+{yl}  $ tar -cjf archive.tar.bz2 myfolder/{R}  {DM}# bzip2 압축 (더 작음){R}
+{yl}  $ tar -cf archive.tar myfolder/{R}        {DM}# 압축 없이 묶기만{R}
+
+  {B}📌 해제하기{R}
+{yl}  $ tar -xzf archive.tar.gz{R}             {DM}# 현재 위치에 해제{R}
+{yl}  $ tar -xzf archive.tar.gz -C /tmp/{R}    {DM}# /tmp 에 해제{R}
+{yl}  $ tar -xjf archive.tar.bz2{R}            {DM}# bzip2 해제{R}
+
+  {B}📌 내용 확인 (해제 없이){R}
+{yl}  $ tar -tzf archive.tar.gz{R}             {DM}# 목록 보기{R}
+
+  {B}📌 옵션 의미{R}
+  {cy}c{R}  create (생성)     {cy}x{R}  extract (해제)
+  {cy}z{R}  gzip              {cy}j{R}  bzip2
+  {cy}f{R}  파일 지정 (필수)  {cy}v{R}  verbose (진행 출력)
+  {cy}t{R}  list (목록)       {cy}C{R}  해제 경로 지정
+
+  {B}📌 기억법 (암기 팁){R}
+  {MG}  압축: c z f  →  "czf로 Create!"{R}
+  {MG}  해제: x z f  →  "xzf로 eXtract!"{R}
+
+  {B}📌 zip/unzip{R}
+{yl}  $ zip -r archive.zip myfolder/{R}
+{yl}  $ unzip archive.zip{R}
+
+  {B}💡 팁{R}
+  {DM}  -v 옵션을 추가하면 압축/해제 진행 파일 목록이 출력됩니다.{R}
+  {DM}  tar.gz 는 리눅스/macOS 표준, .zip 은 Windows 호환에 유리합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "myfolder를 gzip으로 압축해 archive.tar.gz로 만드는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "tar -xzf archive.tar.gz myfolder/",
+                    "tar -czf archive.tar.gz myfolder/",
+                    "tar -tzf archive.tar.gz myfolder/",
+                    "tar -czv archive.tar.gz myfolder/",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "tar에서 -x 옵션의 의미는?",
+                "type": "choice",
+                "choices": ["압축 생성 (create)", "파일 지정", "압축 해제 (extract)", "목록 보기 (list)"],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "env_export",
+        "name": "env/export: 환경변수 관리",
+        "summary": "환경변수를 조회하고, export로 변수를 설정하며, .zshrc/.bashrc에 영구 저장합니다.",
+        "content": f"""{CY}{B}  env / export — 환경변수 관리{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}환경변수{R}란 셸 전체에서 공유되는 이름=값 형태의 변수입니다.
+  PATH, HOME, USER 등이 대표적입니다.
+
+  {B}📌 환경변수 조회{R}
+{yl}  $ env{R}                   {DM}# 전체 환경변수 목록{R}
+{yl}  $ echo $PATH{R}            {DM}# PATH 값 확인{R}
+{yl}  $ echo $HOME{R}            {DM}# 홈 디렉터리 경로{R}
+{yl}  $ printenv PATH{R}         {DM}# printenv로도 확인 가능{R}
+
+  {B}📌 export — 변수 설정 및 내보내기{R}
+{yl}  $ export MY_NAME="Alice"{R}         {DM}# 변수 설정{R}
+{yl}  $ echo $MY_NAME{R}
+{gr}  Alice{R}
+{yl}  $ export PATH="$PATH:/usr/local/bin"{R}  {DM}# PATH에 경로 추가{R}
+
+  {B}📌 export vs 일반 변수{R}
+{yl}  $ name="Bob"{R}            {DM}# 현재 셸에서만 유효{R}
+{yl}  $ export name="Bob"{R}     {DM}# 자식 프로세스에도 전달됨{R}
+
+  {B}📌 영구 저장 (~/.zshrc 또는 ~/.bashrc){R}
+{yl}  $ echo 'export MY_API_KEY="abc123"' >> ~/.zshrc{R}
+{yl}  $ source ~/.zshrc{R}       {DM}# 변경사항 즉시 적용{R}
+
+  {B}📌 자주 쓰는 환경변수{R}
+  {cy}$PATH{R}    명령어 검색 경로 (: 로 구분)
+  {cy}$HOME{R}    홈 디렉터리 (/Users/이름)
+  {cy}$USER{R}    현재 사용자 이름
+  {cy}$SHELL{R}   사용 중인 셸 경로
+  {cy}$EDITOR{R}  기본 편집기
+
+  {B}💡 팁{R}
+  {DM}  API 키 같은 민감한 값은 .zshrc에 직접 저장하지 마세요.{R}
+  {DM}  source ~/.zshrc 없이 새 터미널 열면 자동 적용됩니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "export 와 일반 변수 할당의 차이는?",
+                "type": "choice",
+                "choices": [
+                    "차이 없음, 같은 동작",
+                    "export는 자식 프로세스에도 전달됨",
+                    "export는 파일에 저장됨",
+                    "export는 읽기 전용 변수를 만듦",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": ".zshrc에 추가한 export 설정을 현재 터미널에 즉시 반영하려면?",
+                "type": "choice",
+                "choices": [
+                    "restart zsh",
+                    "reload ~/.zshrc",
+                    "source ~/.zshrc",
+                    "exec ~/.zshrc",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
 ]
 
 # ── Vim lessons ────────────────────────────────────────────────────────────────
