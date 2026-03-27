@@ -1,19 +1,40 @@
 #!/usr/bin/env python3
 """터미널 학습 도우미 | Python 3 only — stdlib only"""
 
-import os, sys, json, re, tty, termios, time
+import os, sys, json, re, time
 from datetime import date, timedelta
 import getpass
 
+IS_WINDOWS = sys.platform == "win32"
+
+if IS_WINDOWS:
+    import msvcrt
+    import ctypes
+    # Windows Terminal / ConHost 에서 ANSI 색상 활성화
+    try:
+        kernel32 = ctypes.windll.kernel32
+        kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+    except Exception:
+        pass
+else:
+    import tty, termios
+
 def getch():
     """엔터 없이 키 하나를 읽는다."""
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        return sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    if IS_WINDOWS:
+        ch = msvcrt.getwch()
+        if ch in ('\x00', '\xe0'):   # 특수키(화살표 등) — 두 번째 코드 버림
+            msvcrt.getwch()
+            return ''
+        return ch
+    else:
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            return sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 # ── ANSI colours ──────────────────────────────────────────────────────────────
 R  = "\033[0m"
@@ -31,7 +52,7 @@ rd = "\033[31m"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def clr():
-    os.system("clear")
+    os.system("cls" if IS_WINDOWS else "clear")
 
 def hr():
     print(f"{DM}{'─'*60}{R}")
@@ -66,7 +87,10 @@ def typewrite(text, duration=2.0):
             i += 1
 
 # ── Storage paths ─────────────────────────────────────────────────────────────
-CFG_DIR      = os.path.expanduser("~/.config/learning-terminal")
+if IS_WINDOWS:
+    CFG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "learning-terminal")
+else:
+    CFG_DIR = os.path.expanduser("~/.config/learning-terminal")
 CONFIG_FILE  = os.path.join(CFG_DIR, "config.json")
 PROGRESS_FILE= os.path.join(CFG_DIR, "progress.json")
 
@@ -92,10 +116,12 @@ def save_config(cfg):
     save_json(CONFIG_FILE, cfg)
 
 def load_progress():
-    default = {"terminal": {}, "vim": {}}
+    default = {"terminal": {}, "vim": {}, "powershell": {}, "tmux": {}}
     p = load_json(PROGRESS_FILE, default)
     if "terminal" not in p: p["terminal"] = {}
     if "vim" not in p: p["vim"] = {}
+    if "powershell" not in p: p["powershell"] = {}
+    if "tmux" not in p: p["tmux"] = {}
     return p
 
 def save_progress(p):
@@ -140,7 +166,7 @@ def get_due():
     p = load_progress()
     today = date.today().isoformat()
     due = []
-    for ltype in ("terminal", "vim"):
+    for ltype in ("terminal", "vim", "tmux"):
         for lid, info in p[ltype].items():
             if info.get("learned") and info.get("next_review", "9999") <= today:
                 due.append((ltype, lid))
@@ -1259,6 +1285,483 @@ TERMINAL_LESSONS = [
             },
         ],
     },
+    {
+        "id": "ssh",
+        "name": "ssh: 원격 서버 접속",
+        "summary": "SSH로 원격 서버에 접속하고, 키 기반 인증을 설정하는 법을 배웁니다.",
+        "content": f"""{CY}{B}  ssh — 원격 서버 접속{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}SSH{R}(Secure Shell)는 네트워크를 통해 원격 서버에 안전하게 접속하는 프로토콜입니다.
+
+  {B}📌 기본 접속{R}
+{yl}  $ ssh user@host{R}             {DM}# 사용자명@서버주소{R}
+{yl}  $ ssh user@192.168.1.10{R}     {DM}# IP 주소로 접속{R}
+{yl}  $ ssh -p 2222 user@host{R}     {DM}# 포트 지정 (기본: 22){R}
+
+  {B}📌 SSH 키 생성 & 등록{R}
+{yl}  $ ssh-keygen -t ed25519{R}      {DM}# 키 쌍 생성 (권장 알고리즘){R}
+{yl}  $ ssh-copy-id user@host{R}      {DM}# 공개키를 서버에 등록{R}
+  {DM}  이후 비밀번호 없이 접속 가능!{R}
+
+  {B}📌 파일 전송{R}
+{yl}  $ scp file.txt user@host:~/  {R}  {DM}# 로컬→원격 복사{R}
+{yl}  $ scp user@host:~/file.txt . {R}  {DM}# 원격→로컬 복사{R}
+{yl}  $ scp -r dir/ user@host:~/   {R}  {DM}# 디렉터리 복사{R}
+
+  {B}📌 SSH 설정 파일 (~/.ssh/config){R}
+{gr}  Host myserver{R}
+{gr}    HostName 192.168.1.10{R}
+{gr}    User ubuntu{R}
+{gr}    Port 2222{R}
+{gr}    IdentityFile ~/.ssh/id_ed25519{R}
+{yl}  $ ssh myserver{R}               {DM}# 별칭으로 간단히 접속{R}
+
+  {B}💡 팁{R}
+  {DM}  ~/.ssh/config 에 서버 정보를 저장하면 긴 명령어를 반복 입력하지 않아도 됩니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "SSH 키 쌍을 생성하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "ssh-create -t ed25519",
+                    "ssh-keygen -t ed25519",
+                    "ssh-init ed25519",
+                    "keygen --type ed25519",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "로컬 파일을 원격 서버로 복사하는 명령어 형태는?",
+                "type": "choice",
+                "choices": [
+                    "ssh-copy file.txt user@host:~/",
+                    "rsync file.txt user@host:~/",
+                    "scp file.txt user@host:~/",
+                    "cp file.txt user@host:~/",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "curl",
+        "name": "curl: HTTP 요청 보내기",
+        "summary": "curl로 API를 호출하고, 파일을 다운로드하고, 헤더/데이터를 전송합니다.",
+        "content": f"""{CY}{B}  curl — HTTP 요청 보내기{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}curl{R}은 URL로 데이터를 주고받는 범용 명령어입니다.
+  API 테스트, 파일 다운로드, 웹 요청 등에 광범위하게 사용됩니다.
+
+  {B}📌 기본 GET 요청{R}
+{yl}  $ curl https://example.com{R}           {DM}# 기본 GET{R}
+{yl}  $ curl -s https://example.com{R}        {DM}# -s: 진행 표시 숨김 (silent){R}
+{yl}  $ curl -o file.html https://example.com{R} {DM}# 파일로 저장{R}
+{yl}  $ curl -O https://example.com/file.zip{R}  {DM}# 원래 파일명으로 저장{R}
+
+  {B}📌 자주 쓰는 옵션{R}
+{yl}  $ curl -L URL{R}         {DM}# 리다이렉트 따라가기{R}
+{yl}  $ curl -I URL{R}         {DM}# 헤더만 보기 (HEAD 요청){R}
+{yl}  $ curl -v URL{R}         {DM}# 자세한 요청/응답 내용{R}
+
+  {B}📌 POST 요청 (API 테스트){R}
+{yl}  $ curl -X POST URL \\{R}
+{yl}       -H "Content-Type: application/json" \\{R}
+{yl}       -d '{{"key": "value"}}'{R}
+
+  {B}📌 인증 헤더{R}
+{yl}  $ curl -H "Authorization: Bearer TOKEN" URL{R}
+
+  {B}📌 JSON 응답 예쁘게 보기{R}
+{yl}  $ curl -s URL | python3 -m json.tool{R}
+{yl}  $ curl -s URL | jq .{R}              {DM}# jq 설치 시{R}
+
+  {B}💡 팁{R}
+  {DM}  -s (silent) + -o /dev/null + -w "%{{http_code}}" 조합으로 상태코드만 확인 가능합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "curl로 파일을 원래 파일명 그대로 저장하는 옵션은?",
+                "type": "choice",
+                "choices": ["-o", "-O (대문자)", "-s", "-f"],
+                "answer": 1,
+            },
+            {
+                "q": "curl로 JSON 데이터를 POST 전송할 때 필요한 헤더를 지정하는 옵션은?",
+                "type": "choice",
+                "choices": ["-d", "-X", "-H", "-j"],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "sed_awk",
+        "name": "sed/awk: 텍스트 처리",
+        "summary": "sed로 텍스트를 치환하고, awk로 필드를 추출하는 강력한 텍스트 처리 도구입니다.",
+        "content": f"""{CY}{B}  sed / awk — 텍스트 처리{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}📌 sed — 스트림 편집기{R}
+  파이프나 파일에서 텍스트를 {cy}치환/삭제/삽입{R}합니다.
+
+{yl}  $ sed 's/old/new/' file.txt{R}      {DM}# 각 줄 첫 번째 치환{R}
+{yl}  $ sed 's/old/new/g' file.txt{R}     {DM}# g: 모든 일치 치환{R}
+{yl}  $ sed -i 's/old/new/g' file.txt{R}  {DM}# -i: 파일 직접 수정{R}
+{yl}  $ sed '/pattern/d' file.txt{R}      {DM}# 패턴 있는 줄 삭제{R}
+{yl}  $ sed -n '3,7p' file.txt{R}         {DM}# 3~7번째 줄만 출력{R}
+
+  {B}📌 awk — 필드 처리 도구{R}
+  공백/탭으로 나뉜 {cy}컬럼(필드)을 추출{R}하거나 가공합니다.
+  {cy}$1, $2, ...{R} = 각 필드,  {cy}$NF{R} = 마지막 필드
+
+{yl}  $ awk '{{print $1}}' file.txt{R}      {DM}# 첫 번째 컬럼 출력{R}
+{yl}  $ awk '{{print $1, $3}}' file.txt{R}  {DM}# 1, 3번째 컬럼{R}
+{yl}  $ awk -F: '{{print $1}}' /etc/passwd{R} {DM}# -F: 구분자를 : 으로{R}
+{yl}  $ awk 'NR>1 {{print $2}}' file.txt{R} {DM}# 2번째 줄부터 2번째 컬럼{R}
+
+  {B}📌 실전 조합 예시{R}
+{yl}  $ ps aux | awk '{{print $1, $11}}'{R}  {DM}# 프로세스 소유자+이름{R}
+{yl}  $ cat log.txt | sed 's/ERROR/[ERROR]/g'{R}
+
+  {B}💡 팁{R}
+  {DM}  sed는 줄 단위 치환, awk는 컬럼 추출이 주 용도라고 기억하세요.{R}
+""",
+        "quizzes": [
+            {
+                "q": "sed로 파일 안의 모든 'foo'를 'bar'로 파일 직접 수정하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "sed 's/foo/bar/' file.txt",
+                    "sed -i 's/foo/bar/g' file.txt",
+                    "sed --replace foo bar file.txt",
+                    "sed 's/foo/bar/1' file.txt",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "awk에서 구분자를 콜론(:)으로 지정하는 옵션은?",
+                "type": "choice",
+                "choices": ["-d :", "-s :", "-F :", "-t :"],
+                "answer": 2,
+            },
+        ],
+    },
+]
+
+# ── Tmux lessons ───────────────────────────────────────────────────────────────
+TMUX_LESSONS = [
+    {
+        "id": "tmux_intro",
+        "name": "tmux 소개 & 기본 개념",
+        "summary": "tmux는 터미널 멀티플렉서입니다. 세션, 윈도우, 패인의 3단계 구조를 이해합니다.",
+        "content": f"""{CY}{B}  tmux — 소개 & 기본 개념{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}tmux{R}는 {CY}Terminal Multiplexer{R}의 약자입니다.
+  하나의 터미널에서 여러 세션/윈도우/패인을 동시에 관리할 수 있습니다.
+
+  {B}📌 3단계 구조{R}
+  {cy}Session{R}  최상위 단위. SSH 접속이 끊겨도 유지됨
+  {cy}Window{R}   세션 안의 탭. 각각 독립적인 터미널
+  {cy}Pane{R}     윈도우 안의 분할 영역. 화면 분할
+
+  {B}📌 tmux 설치 확인{R}
+{yl}  $ tmux -V{R}             {DM}# 버전 확인{R}
+
+  {B}📌 tmux 시작/종료{R}
+{yl}  $ tmux{R}                {DM}# 새 세션으로 시작{R}
+{yl}  $ tmux new -s 이름{R}    {DM}# 이름 있는 세션 시작{R}
+{yl}  $ exit{R}                {DM}# 현재 패인/윈도우 종료{R}
+
+  {B}📌 Prefix 키{R}
+  tmux의 모든 단축키는 {GR}Ctrl+b{R} (prefix) 를 먼저 누른 뒤 입력합니다.
+  {DM}  예: Ctrl+b, 그 다음 d → 세션에서 detach{R}
+
+  {B}💡 핵심 개념{R}
+  {DM}  tmux를 쓰면 SSH가 끊겨도 세션이 살아있어 작업을 이어갈 수 있습니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "tmux에서 모든 단축키 입력 전에 먼저 눌러야 하는 키는?",
+                "type": "choice",
+                "choices": ["Ctrl+a", "Ctrl+b", "Ctrl+t", "Ctrl+x"],
+                "answer": 1,
+            },
+            {
+                "q": "tmux의 3단계 구조를 상위에서 하위 순서로 나열하면?",
+                "type": "choice",
+                "choices": [
+                    "Pane → Window → Session",
+                    "Window → Session → Pane",
+                    "Session → Window → Pane",
+                    "Session → Pane → Window",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "tmux_session",
+        "name": "tmux 세션 관리",
+        "summary": "세션 생성, 목록 보기, attach/detach, 이름 변경, 종료를 배웁니다.",
+        "content": f"""{CY}{B}  tmux — 세션 관리{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}📌 세션 생성{R}
+{yl}  $ tmux{R}                    {DM}# 이름 없는 세션 시작{R}
+{yl}  $ tmux new -s work{R}        {DM}# 'work'라는 세션 시작{R}
+{yl}  $ tmux new-session -s dev{R} {DM}# 풀 명령어 형태{R}
+
+  {B}📌 세션 목록 보기{R}
+{yl}  $ tmux ls{R}                 {DM}# 실행 중인 세션 목록{R}
+{yl}  $ tmux list-sessions{R}      {DM}# 풀 명령어 형태{R}
+
+  {B}📌 세션 들어가기 / 나오기{R}
+{yl}  $ tmux attach -t work{R}     {DM}# 'work' 세션에 연결{R}
+{yl}  $ tmux a{R}                  {DM}# 마지막 세션에 연결 (단축){R}
+  {GR}Ctrl+b, d{R}                 {DM}# 세션에서 detach (세션은 유지){R}
+
+  {B}📌 세션 이름 변경{R}
+  {GR}Ctrl+b, ${R}                 {DM}# 현재 세션 이름 변경{R}
+
+  {B}📌 세션 종료{R}
+{yl}  $ tmux kill-session -t work{R}  {DM}# 특정 세션 종료{R}
+{yl}  $ tmux kill-server{R}           {DM}# 모든 세션 종료{R}
+  {GR}Ctrl+b, :{R} kill-session      {DM}# 명령줄로 종료{R}
+
+  {B}💡 팁{R}
+  {DM}  detach는 세션을 백그라운드로 보내는 것. 작업이 계속 실행됩니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "'myproject' 라는 이름으로 tmux 세션을 시작하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "tmux start myproject",
+                    "tmux new -s myproject",
+                    "tmux open -n myproject",
+                    "tmux session myproject",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "tmux 세션에서 나오되 세션을 종료하지 않고 백그라운드로 보내는 단축키는?",
+                "type": "choice",
+                "choices": ["Ctrl+b, q", "Ctrl+b, x", "Ctrl+b, d", "Ctrl+b, z"],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "tmux_window",
+        "name": "tmux 윈도우 관리",
+        "summary": "윈도우(탭) 생성, 전환, 이름 변경, 닫기를 배웁니다.",
+        "content": f"""{CY}{B}  tmux — 윈도우 관리{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  윈도우는 세션 안의 {cy}탭{R}입니다. 브라우저 탭처럼 여러 작업을 전환합니다.
+
+  {B}📌 윈도우 생성 / 닫기{R}
+  {GR}Ctrl+b, c{R}   {DM}# 새 윈도우 생성 (create){R}
+  {GR}Ctrl+b, &{R}   {DM}# 현재 윈도우 닫기 (확인 필요){R}
+
+  {B}📌 윈도우 전환{R}
+  {GR}Ctrl+b, n{R}   {DM}# 다음 윈도우 (next){R}
+  {GR}Ctrl+b, p{R}   {DM}# 이전 윈도우 (previous){R}
+  {GR}Ctrl+b, 0~9{R} {DM}# 번호로 이동 (0번, 1번...){R}
+  {GR}Ctrl+b, w{R}   {DM}# 윈도우 목록에서 선택{R}
+  {GR}Ctrl+b, l{R}   {DM}# 마지막으로 사용한 윈도우{R}
+
+  {B}📌 윈도우 이름 변경{R}
+  {GR}Ctrl+b, ,{R}   {DM}# 현재 윈도우 이름 변경{R}
+
+  {B}📌 상태바 읽기{R}
+  화면 하단 상태바 예시:
+  {gr}  [main] 0:bash  1:vim* 2:server-{R}
+  {DM}  * = 현재 윈도우,  - = 마지막 사용 윈도우{R}
+
+  {B}💡 팁{R}
+  {DM}  윈도우에 의미있는 이름을 붙이면 많은 창 사이에서 길을 잃지 않습니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "tmux에서 새 윈도우를 생성하는 단축키는?",
+                "type": "choice",
+                "choices": ["Ctrl+b, n", "Ctrl+b, w", "Ctrl+b, c", "Ctrl+b, t"],
+                "answer": 2,
+            },
+            {
+                "q": "tmux 상태바에서 * 표시의 의미는?",
+                "type": "choice",
+                "choices": [
+                    "윈도우가 닫힘",
+                    "현재 활성 윈도우",
+                    "마지막으로 사용한 윈도우",
+                    "새로 생성된 윈도우",
+                ],
+                "answer": 1,
+            },
+        ],
+    },
+    {
+        "id": "tmux_pane",
+        "name": "tmux 패인(Pane) 분할",
+        "summary": "화면을 수직/수평으로 분할하고, 패인 사이를 이동하고, 크기를 조절합니다.",
+        "content": f"""{CY}{B}  tmux — 패인(Pane) 분할{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  패인은 하나의 윈도우를 {cy}여러 영역으로 분할{R}한 것입니다.
+
+  {B}📌 화면 분할{R}
+  {GR}Ctrl+b, %{R}   {DM}# 수직 분할 (좌/우){R}
+  {GR}Ctrl+b, "{R}   {DM}# 수평 분할 (위/아래){R}
+
+  {B}📌 패인 이동{R}
+  {GR}Ctrl+b, 방향키{R}          {DM}# 방향키로 이동{R}
+  {GR}Ctrl+b, o{R}               {DM}# 다음 패인으로 순환{R}
+  {GR}Ctrl+b, q, 번호{R}         {DM}# 번호로 이동{R}
+
+  {B}📌 패인 크기 조절{R}
+  {GR}Ctrl+b, Alt+방향키{R}      {DM}# 크기 조절{R}
+  {GR}Ctrl+b, z{R}               {DM}# 현재 패인 전체화면 토글{R}
+
+  {B}📌 패인 닫기 / 기타{R}
+  {GR}Ctrl+b, x{R}               {DM}# 현재 패인 닫기{R}
+  {GR}Ctrl+b, !{R}               {DM}# 패인을 새 윈도우로 분리{R}
+  {GR}Ctrl+b, Space{R}           {DM}# 레이아웃 자동 변경{R}
+
+  {B}💡 팁{R}
+  {DM}  % 는 세로선(수직 분할), " 는 가로선(수평 분할)로 기억하세요.{R}
+""",
+        "quizzes": [
+            {
+                "q": "tmux에서 화면을 좌/우(수직)로 분할하는 단축키는?",
+                "type": "choice",
+                "choices": ['Ctrl+b, "', "Ctrl+b, %", "Ctrl+b, v", "Ctrl+b, h"],
+                "answer": 1,
+            },
+            {
+                "q": "현재 패인을 전체화면으로 확대/축소하는 단축키는?",
+                "type": "choice",
+                "choices": ["Ctrl+b, f", "Ctrl+b, m", "Ctrl+b, z", "Ctrl+b, x"],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "tmux_copy",
+        "name": "tmux 복사 모드 & 스크롤",
+        "summary": "복사 모드(copy mode)로 스크롤하고 텍스트를 선택·복사하는 법을 배웁니다.",
+        "content": f"""{CY}{B}  tmux — 복사 모드 & 스크롤{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  tmux 안에서는 마우스 스크롤이 기본 비활성화입니다.
+  {cy}복사 모드{R}를 이용해 스크롤하고 텍스트를 복사합니다.
+
+  {B}📌 복사 모드 진입 / 탈출{R}
+  {GR}Ctrl+b, [{R}   {DM}# 복사 모드 진입{R}
+  {gr}q{R}           {DM}# 복사 모드 탈출{R}
+  {gr}Esc{R}         {DM}# 복사 모드 탈출{R}
+
+  {B}📌 복사 모드 내 이동{R}
+  {gr}방향키{R}      {DM}# 한 줄씩 이동{R}
+  {gr}Page Up/Down{R} {DM}# 페이지 이동{R}
+  {gr}Ctrl+u / Ctrl+d{R} {DM}# 반 페이지 이동{R}
+  {gr}g / G{R}       {DM}# 맨 위 / 맨 아래로{R}
+
+  {B}📌 텍스트 선택 & 복사 (기본 키바인딩){R}
+  {gr}Space{R}       {DM}# 선택 시작{R}
+  {gr}Enter{R}       {DM}# 선택 복사 후 복사 모드 종료{R}
+  {GR}Ctrl+b, ]{R}   {DM}# 복사한 내용 붙여넣기{R}
+
+  {B}📌 마우스 모드 활성화 (옵션){R}
+{yl}  $ tmux set -g mouse on{R}  {DM}# 마우스 스크롤 활성화{R}
+  {DM}  또는 ~/.tmux.conf 에 set -g mouse on 추가{R}
+
+  {B}💡 팁{R}
+  {DM}  vi 키바인딩 사용자는 .tmux.conf에 setw -g mode-keys vi 를 추가하면{R}
+  {DM}  복사 모드에서 v로 선택, y로 복사가 가능합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "tmux에서 복사 모드(스크롤 모드)에 진입하는 단축키는?",
+                "type": "choice",
+                "choices": ["Ctrl+b, c", "Ctrl+b, s", "Ctrl+b, [", "Ctrl+b, v"],
+                "answer": 2,
+            },
+            {
+                "q": "복사 모드에서 복사한 내용을 붙여넣는 단축키는?",
+                "type": "choice",
+                "choices": ["Ctrl+b, p", "Ctrl+b, ]", "Ctrl+b, v", "Ctrl+b, y"],
+                "answer": 1,
+            },
+        ],
+    },
+    {
+        "id": "tmux_config",
+        "name": "tmux 설정 (.tmux.conf)",
+        "summary": "~/.tmux.conf 파일로 prefix 키 변경, 마우스, 상태바 등을 커스터마이즈합니다.",
+        "content": f"""{CY}{B}  tmux — 설정 (.tmux.conf){R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  tmux 설정 파일: {cy}~/.tmux.conf{R}
+
+  {B}📌 설정 파일 적용{R}
+{yl}  $ tmux source-file ~/.tmux.conf{R}   {DM}# 재시작 없이 적용{R}
+  {GR}Ctrl+b, :{R} source-file ~/.tmux.conf  {DM}# tmux 안에서 적용{R}
+
+  {B}📌 자주 쓰는 설정 예시{R}
+{gr}  # Prefix를 Ctrl+a로 변경 (screen 스타일){R}
+{yl}  unbind C-b{R}
+{yl}  set -g prefix C-a{R}
+{yl}  bind C-a send-prefix{R}
+
+{gr}  # 마우스 지원 활성화{R}
+{yl}  set -g mouse on{R}
+
+{gr}  # 인덱스를 1부터 시작{R}
+{yl}  set -g base-index 1{R}
+
+{gr}  # 256색 지원{R}
+{yl}  set -g default-terminal "screen-256color"{R}
+
+{gr}  # 상태바 색상{R}
+{yl}  set -g status-bg black{R}
+{yl}  set -g status-fg white{R}
+
+  {B}📌 설정 직접 적용 (임시){R}
+{yl}  $ tmux set -g mouse on{R}            {DM}# 현재 세션에만 적용{R}
+
+  {B}💡 팁{R}
+  {DM}  tmux Plugin Manager(tpm)를 이용하면 플러그인으로 쉽게 확장 가능합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "~/.tmux.conf 변경사항을 tmux 재시작 없이 적용하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "tmux reload",
+                    "tmux restart",
+                    "tmux source-file ~/.tmux.conf",
+                    "tmux apply ~/.tmux.conf",
+                ],
+                "answer": 2,
+            },
+            {
+                "q": ".tmux.conf에서 마우스 지원을 활성화하는 설정은?",
+                "type": "choice",
+                "choices": [
+                    "enable mouse",
+                    "set mouse true",
+                    "set -g mouse on",
+                    "mouse-support on",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
 ]
 
 # ── Vim lessons ────────────────────────────────────────────────────────────────
@@ -1909,8 +2412,690 @@ VIM_LESSONS = [
     },
 ]
 
+# ── PowerShell lessons ─────────────────────────────────────────────────────────
+POWERSHELL_LESSONS = [
+    {
+        "id": "ps_location",
+        "name": "Get-Location: 현재 위치 확인",
+        "summary": "Get-Location(pwd)으로 현재 작업 디렉터리를 확인합니다.",
+        "content": f"""{CY}{B}  Get-Location — 현재 위치 확인{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  PowerShell에서 현재 위치를 확인할 때 {B}Get-Location{R}을 사용합니다.
+  Unix의 {cy}pwd{R}와 동일한 역할을 합니다.
+
+  {B}📌 기본 사용법{R}
+{yl}  PS> Get-Location{R}
+{gr}  Path
+  ----
+  C:\\Users\\name\\Documents{R}
+
+  {B}📌 짧은 별칭(alias){R}
+{yl}  PS> pwd{R}   ← Unix 스타일로도 동작!
+{yl}  PS> gl{R}    ← 더 짧은 별칭
+
+  {B}📌 경로 구조 (Windows){R}
+  {DM}C:\\ (드라이브 루트){R}
+   └─ {DM}Users\\{R}
+       └─ {DM}name\\{R}
+           └─ {cy}Documents\\{R}  ← 지금 여기
+
+  {B}💡 팁{R}
+  {DM}  PowerShell에서는 Unix 별칭(pwd, ls, cd)도 대부분 동작합니다.{R}
+  {DM}  하지만 원래 cmdlet 이름을 익혀두면 더 강력하게 활용할 수 있습니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "PowerShell에서 현재 디렉터리를 확인하는 cmdlet은?",
+                "type": "choice",
+                "choices": [
+                    "Get-Location",
+                    "Show-Directory",
+                    "Print-Path",
+                    "Current-Dir",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "Get-Location의 짧은 별칭(alias)을 입력하세요.",
+                "type": "input",
+                "answer": "pwd",
+                "validate": lambda s: s.strip().lower() in ("pwd", "gl"),
+            },
+        ],
+    },
+    {
+        "id": "ps_ls",
+        "name": "Get-ChildItem: 파일 목록 보기",
+        "summary": "Get-ChildItem(ls/dir)으로 디렉터리 내용을 확인합니다.",
+        "content": f"""{CY}{B}  Get-ChildItem — 파일 목록 보기{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Get-ChildItem{R}은 디렉터리 안의 파일과 폴더를 나열합니다.
+  Unix의 {cy}ls{R}, Windows CMD의 {cy}dir{R}와 동일합니다.
+
+  {B}📌 기본 사용법{R}
+{yl}  PS> Get-ChildItem{R}
+{yl}  PS> ls{R}        ← 별칭
+{yl}  PS> dir{R}       ← 별칭
+
+  {B}📌 주요 옵션{R}
+{yl}  PS> Get-ChildItem -Force{R}          {DM}# 숨김 파일 포함{R}
+{yl}  PS> Get-ChildItem -Recurse{R}        {DM}# 하위 폴더까지{R}
+{yl}  PS> Get-ChildItem *.txt{R}           {DM}# .txt 파일만{R}
+{yl}  PS> Get-ChildItem -Name{R}           {DM}# 이름만 출력{R}
+
+  {B}📌 별칭 정리{R}
+  • {cy}gci{R}  — Get-ChildItem 의 공식 별칭
+  • {cy}ls{R}   — Unix 스타일
+  • {cy}dir{R}  — CMD 스타일
+
+  {B}💡 팁{R}
+  {DM}  Get-ChildItem은 파일시스템뿐 아니라 레지스트리, 인증서 저장소에도{R}
+  {DM}  사용할 수 있는 강력한 cmdlet입니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "Get-ChildItem에서 숨김 파일까지 보려면?",
+                "type": "choice",
+                "choices": [
+                    "Get-ChildItem -Force",
+                    "Get-ChildItem -Hidden",
+                    "Get-ChildItem -All",
+                    "Get-ChildItem -a",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "현재 폴더의 .log 파일만 나열하는 명령어를 입력하세요.",
+                "type": "input",
+                "answer": "Get-ChildItem *.log",
+                "validate": lambda s: ("*.log" in s or "*.Log" in s) and ("gci" in s.lower() or "ls" in s.lower() or "dir" in s.lower() or "get-childitem" in s.lower()),
+            },
+        ],
+    },
+    {
+        "id": "ps_cd",
+        "name": "Set-Location: 디렉터리 이동",
+        "summary": "Set-Location(cd)으로 작업 디렉터리를 변경합니다.",
+        "content": f"""{CY}{B}  Set-Location — 디렉터리 이동{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Set-Location{R}은 현재 작업 디렉터리를 변경합니다.
+  Unix/CMD 모두에서 쓰는 {cy}cd{R}와 동일합니다.
+
+  {B}📌 기본 사용법{R}
+{yl}  PS> Set-Location C:\\Users\\name\\Documents{R}
+{yl}  PS> cd Documents{R}   ← 별칭, 상대 경로
+{yl}  PS> cd ..{R}           ← 상위 폴더로
+{yl}  PS> cd ~{R}            ← 홈 디렉터리로
+{yl}  PS> cd -{R}            ← 이전 위치로 (뒤로 가기)
+
+  {B}📌 경로 표현{R}
+  • {cy}C:\\folder\\sub{R}     절대 경로
+  • {cy}.\\subfolder{R}       현재 폴더 기준 상대 경로
+  • {cy}..\\sibling{R}        부모 폴더의 형제 폴더
+  • {cy}~{R}                  홈 디렉터리 ($HOME)
+
+  {B}📌 별칭{R}
+  • {cy}cd{R}  • {cy}sl{R}  • {cy}chdir{R}
+
+  {B}💡 팁{R}
+  {DM}  Tab 키로 경로 자동완성이 됩니다. 파워셸의 강력한 기능!{R}
+""",
+        "quizzes": [
+            {
+                "q": "PowerShell에서 홈 디렉터리로 이동하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "cd ~",
+                    "cd /home",
+                    "cd $HOME_DIR",
+                    "go home",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "Set-Location의 공식 별칭은 무엇인가요?",
+                "type": "input",
+                "answer": "cd",
+                "validate": lambda s: s.strip().lower() in ("cd", "sl", "chdir"),
+            },
+        ],
+    },
+    {
+        "id": "ps_newitem",
+        "name": "New-Item: 파일/폴더 생성",
+        "summary": "New-Item으로 파일과 디렉터리를 만듭니다.",
+        "content": f"""{CY}{B}  New-Item — 파일/폴더 생성{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}New-Item{R}은 파일이나 폴더를 새로 만듭니다.
+  Unix의 {cy}touch{R}(파일) 및 {cy}mkdir{R}(폴더)에 해당합니다.
+
+  {B}📌 폴더 만들기{R}
+{yl}  PS> New-Item -ItemType Directory -Name "myfolder"{R}
+{yl}  PS> mkdir myfolder{R}   ← 더 짧은 별칭
+
+  {B}📌 파일 만들기{R}
+{yl}  PS> New-Item -ItemType File -Name "notes.txt"{R}
+{yl}  PS> ni notes.txt{R}     ← 별칭
+
+  {B}📌 내용 포함해서 생성{R}
+{yl}  PS> New-Item -Name "hello.txt" -Value "Hello, World!"{R}
+
+  {B}📌 중간 경로 자동 생성{R}
+{yl}  PS> New-Item -Path "a\\b\\c" -ItemType Directory -Force{R}
+  {DM}  Unix의 mkdir -p 와 동일{R}
+
+  {B}💡 팁{R}
+  {DM}  New-Item은 파일시스템 외에도 레지스트리 키 등을 만들 수 있습니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "새 폴더를 만드는 올바른 cmdlet은?",
+                "type": "choice",
+                "choices": [
+                    "New-Item -ItemType Directory",
+                    "Create-Folder",
+                    "Make-Directory",
+                    "New-Folder",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "mkdir는 New-Item의 무엇인가요?",
+                "type": "choice",
+                "choices": [
+                    "별칭(alias)",
+                    "매개변수(parameter)",
+                    "함수(function)",
+                    "모듈(module)",
+                ],
+                "answer": 0,
+            },
+        ],
+    },
+    {
+        "id": "ps_copy",
+        "name": "Copy-Item: 파일 복사",
+        "summary": "Copy-Item(cp)으로 파일과 폴더를 복사합니다.",
+        "content": f"""{CY}{B}  Copy-Item — 파일 복사{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Copy-Item{R}은 파일이나 폴더를 복사합니다.
+  Unix의 {cy}cp{R}, CMD의 {cy}copy{R}에 해당합니다.
+
+  {B}📌 파일 복사{R}
+{yl}  PS> Copy-Item file.txt backup.txt{R}
+{yl}  PS> cp file.txt C:\\Backup\\{R}   ← 별칭
+
+  {B}📌 폴더 전체 복사{R}
+{yl}  PS> Copy-Item -Path .\\src -Destination .\\dst -Recurse{R}
+  {DM}  Unix의 cp -r 과 동일{R}
+
+  {B}📌 덮어쓰기 강제{R}
+{yl}  PS> Copy-Item file.txt dst.txt -Force{R}
+
+  {B}📌 와일드카드 사용{R}
+{yl}  PS> Copy-Item *.txt C:\\Backup\\{R}   {DM}# 모든 .txt 복사{R}
+
+  {B}📌 별칭{R}
+  • {cy}cp{R}  • {cy}copy{R}  • {cy}cpi{R}
+
+  {B}💡 팁{R}
+  {DM}  -WhatIf 옵션으로 실행 전 결과를 미리 확인할 수 있습니다.{R}
+{yl}  PS> Copy-Item *.log C:\\Archive\\ -WhatIf{R}
+""",
+        "quizzes": [
+            {
+                "q": "폴더 전체를 복사할 때 필요한 옵션은?",
+                "type": "choice",
+                "choices": [
+                    "-Recurse",
+                    "-Folder",
+                    "-All",
+                    "-Deep",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "Copy-Item의 Unix 스타일 별칭은?",
+                "type": "input",
+                "answer": "cp",
+                "validate": lambda s: s.strip().lower() in ("cp", "copy", "cpi"),
+            },
+        ],
+    },
+    {
+        "id": "ps_move",
+        "name": "Move-Item: 파일 이동/이름 변경",
+        "summary": "Move-Item(mv)으로 파일을 이동하거나 이름을 바꿉니다.",
+        "content": f"""{CY}{B}  Move-Item — 이동 / 이름 변경{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Move-Item{R}은 파일/폴더를 이동하거나 이름을 변경합니다.
+  Unix의 {cy}mv{R}와 동일합니다.
+
+  {B}📌 파일 이동{R}
+{yl}  PS> Move-Item file.txt C:\\Archive\\{R}
+{yl}  PS> mv file.txt C:\\Archive\\{R}   ← 별칭
+
+  {B}📌 파일 이름 변경{R}
+{yl}  PS> Move-Item old.txt new.txt{R}
+  {DM}  같은 폴더 안에서 이름만 바꾸는 것도 Move-Item으로!{R}
+
+  {B}📌 여러 파일 이동{R}
+{yl}  PS> Move-Item *.log C:\\Logs\\{R}
+
+  {B}📌 별칭{R}
+  • {cy}mv{R}  • {cy}move{R}  • {cy}mi{R}
+
+  {B}💡 팁{R}
+  {DM}  Rename-Item 전용 cmdlet도 있지만, Move-Item으로 이름 변경도 가능합니다.{R}
+{yl}  PS> Rename-Item old.txt new.txt{R}
+""",
+        "quizzes": [
+            {
+                "q": "Move-Item으로 이름 변경도 할 수 있나요?",
+                "type": "choice",
+                "choices": [
+                    "네, 같은 폴더에서 다른 이름으로 지정하면 됩니다",
+                    "아니요, 이름 변경은 Rename-Item만 가능합니다",
+                    "아니요, 이동만 가능합니다",
+                    "네, 하지만 -Rename 옵션이 필요합니다",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "Move-Item의 별칭(Unix 스타일)은?",
+                "type": "input",
+                "answer": "mv",
+                "validate": lambda s: s.strip().lower() in ("mv", "move", "mi"),
+            },
+        ],
+    },
+    {
+        "id": "ps_remove",
+        "name": "Remove-Item: 파일 삭제",
+        "summary": "Remove-Item(rm)으로 파일과 폴더를 삭제합니다.",
+        "content": f"""{CY}{B}  Remove-Item — 파일/폴더 삭제{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Remove-Item{R}은 파일이나 폴더를 삭제합니다.
+  Unix의 {cy}rm{R}, CMD의 {cy}del{R}/{cy}rd{R}에 해당합니다.
+
+  {B}📌 파일 삭제{R}
+{yl}  PS> Remove-Item file.txt{R}
+{yl}  PS> rm file.txt{R}   ← 별칭
+
+  {B}📌 폴더 삭제 (안의 내용 포함){R}
+{yl}  PS> Remove-Item -Path .\\myfolder -Recurse{R}
+  {DM}  Unix의 rm -r 과 동일{R}
+
+  {B}📌 확인 없이 강제 삭제{R}
+{yl}  PS> Remove-Item *.tmp -Force{R}
+
+  {B}⚠ 주의사항{R}
+  {rd}  • PowerShell의 rm은 휴지통을 거치지 않습니다!{R}
+  {rd}  • -Recurse -Force 조합은 특히 신중하게 사용하세요.{R}
+  {DM}  • -WhatIf 로 먼저 확인하는 습관을 들이세요:{R}
+{yl}  PS> Remove-Item *.log -WhatIf{R}
+
+  {B}📌 별칭{R}
+  • {cy}rm{R}  • {cy}del{R}  • {cy}erase{R}  • {cy}ri{R}
+""",
+        "quizzes": [
+            {
+                "q": "폴더와 그 내용을 모두 삭제하려면?",
+                "type": "choice",
+                "choices": [
+                    "Remove-Item -Recurse",
+                    "Remove-Item -Deep",
+                    "Remove-Item -All",
+                    "Remove-Item -Folder",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "삭제 전 결과를 미리 확인하는 안전한 옵션은?",
+                "type": "choice",
+                "choices": [
+                    "-WhatIf",
+                    "-Preview",
+                    "-DryRun",
+                    "-Check",
+                ],
+                "answer": 0,
+            },
+        ],
+    },
+    {
+        "id": "ps_content",
+        "name": "Get-Content: 파일 내용 보기",
+        "summary": "Get-Content(cat)으로 파일 내용을 읽습니다.",
+        "content": f"""{CY}{B}  Get-Content — 파일 내용 보기{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Get-Content{R}은 파일의 내용을 읽어 출력합니다.
+  Unix의 {cy}cat{R}에 해당합니다.
+
+  {B}📌 기본 사용법{R}
+{yl}  PS> Get-Content notes.txt{R}
+{yl}  PS> cat notes.txt{R}     ← 별칭
+
+  {B}📌 처음/끝 N줄만 보기{R}
+{yl}  PS> Get-Content log.txt -TotalCount 10{R}   {DM}# 처음 10줄 (head){R}
+{yl}  PS> Get-Content log.txt -Tail 10{R}          {DM}# 마지막 10줄 (tail){R}
+
+  {B}📌 실시간 모니터링 (tail -f){R}
+{yl}  PS> Get-Content log.txt -Wait{R}
+  {DM}  새 내용이 추가되면 자동으로 표시됩니다.{R}
+
+  {B}📌 인코딩 지정{R}
+{yl}  PS> Get-Content file.txt -Encoding UTF8{R}
+
+  {B}📌 별칭{R}
+  • {cy}cat{R}  • {cy}gc{R}  • {cy}type{R}
+
+  {B}💡 팁{R}
+  {DM}  Get-Content는 줄 단위 배열로 반환하므로 파이프와 잘 어울립니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "파일의 마지막 5줄을 보는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "Get-Content file.txt -Tail 5",
+                    "Get-Content file.txt -Last 5",
+                    "Get-Content file.txt -End 5",
+                    "Get-Content file.txt -Bottom 5",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "Get-Content의 Unix 스타일 별칭은?",
+                "type": "input",
+                "answer": "cat",
+                "validate": lambda s: s.strip().lower() in ("cat", "gc", "type"),
+            },
+        ],
+    },
+    {
+        "id": "ps_selectstring",
+        "name": "Select-String: 텍스트 검색",
+        "summary": "Select-String(grep)으로 파일에서 패턴을 검색합니다.",
+        "content": f"""{CY}{B}  Select-String — 텍스트 검색{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Select-String{R}은 파일이나 입력에서 텍스트 패턴을 검색합니다.
+  Unix의 {cy}grep{R}에 해당합니다.
+
+  {B}📌 기본 검색{R}
+{yl}  PS> Select-String "error" log.txt{R}
+{yl}  PS> sls "error" log.txt{R}   ← 별칭
+
+  {B}📌 대소문자 구분 없이{R}
+{yl}  PS> Select-String "error" log.txt -CaseSensitive:$false{R}
+  {DM}  기본값이 대소문자 무시입니다!{R}
+
+  {B}📌 여러 파일 검색{R}
+{yl}  PS> Select-String "TODO" *.ps1{R}
+
+  {B}📌 정규식(Regex) 검색{R}
+{yl}  PS> Select-String "[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}" log.txt{R}
+  {DM}  날짜 패턴 검색 예시{R}
+
+  {B}📌 파이프와 함께{R}
+{yl}  PS> Get-Content log.txt | Select-String "WARN"{R}
+
+  {B}💡 팁{R}
+  {DM}  결과는 객체로 반환되어 .LineNumber, .Line 등 속성 활용 가능{R}
+{yl}  PS> (sls "error" log.txt).LineNumber{R}
+""",
+        "quizzes": [
+            {
+                "q": "Select-String의 짧은 별칭은?",
+                "type": "choice",
+                "choices": [
+                    "sls",
+                    "grep",
+                    "find",
+                    "search",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "Select-String에서 대소문자를 구분하여 검색하려면?",
+                "type": "choice",
+                "choices": [
+                    "-CaseSensitive",
+                    "-MatchCase",
+                    "-Exact",
+                    "-Strict",
+                ],
+                "answer": 0,
+            },
+        ],
+    },
+    {
+        "id": "ps_pipeline",
+        "name": "파이프라인(|): 명령어 연결",
+        "summary": "| 연산자로 cmdlet을 연결해 강력한 명령을 만듭니다.",
+        "content": f"""{CY}{B}  파이프라인 — 명령어 연결{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}파이프라인({cy}|{B}){R}은 앞 명령의 출력을 다음 명령의 입력으로 전달합니다.
+  Unix와 동일한 개념이지만, PowerShell은 {CY}텍스트가 아닌 객체{R}를 전달합니다!
+
+  {B}📌 기본 예시{R}
+{yl}  PS> Get-Process | Where-Object CPU -gt 100{R}
+  {DM}  CPU 사용량 100 이상인 프로세스만 필터링{R}
+
+{yl}  PS> Get-ChildItem | Sort-Object Length -Descending{R}
+  {DM}  파일을 크기 내림차순으로 정렬{R}
+
+{yl}  PS> Get-Content log.txt | Select-String "ERROR" | Measure-Object{R}
+  {DM}  ERROR 줄 개수 세기{R}
+
+  {B}📌 자주 쓰는 파이프 대상{R}
+  • {cy}Where-Object{R} ({cy}?{R}) — 조건 필터링
+  • {cy}Sort-Object{R}  ({cy}sort{R}) — 정렬
+  • {cy}Select-Object{R} ({cy}select{R}) — 필드 선택
+  • {cy}Measure-Object{R} ({cy}measure{R}) — 개수/합계/평균
+  • {cy}Format-Table{R}  ({cy}ft{R}) — 표 형식 출력
+  • {cy}Out-File{R}      — 파일로 저장
+
+  {B}💡 파워셸 파이프라인의 특징{R}
+  {DM}  일반 텍스트가 아닌 .NET 객체가 전달되므로{R}
+  {DM}  속성 이름으로 바로 정렬/필터링이 가능합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "PowerShell 파이프라인이 Unix와 다른 점은?",
+                "type": "choice",
+                "choices": [
+                    "텍스트가 아닌 .NET 객체를 전달한다",
+                    "파이프를 여러 개 연결할 수 없다",
+                    "출력을 파일로만 저장할 수 있다",
+                    "속도가 더 느리다",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "파이프라인에서 조건으로 필터링하는 cmdlet은?",
+                "type": "choice",
+                "choices": [
+                    "Where-Object",
+                    "Filter-Object",
+                    "Select-Where",
+                    "Find-Object",
+                ],
+                "answer": 0,
+            },
+        ],
+    },
+    {
+        "id": "ps_process",
+        "name": "Get-Process / Stop-Process: 프로세스 관리",
+        "summary": "Get-Process(ps)와 Stop-Process(kill)로 프로세스를 관리합니다.",
+        "content": f"""{CY}{B}  Get-Process / Stop-Process — 프로세스 관리{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Get-Process{R}는 실행 중인 프로세스 목록을 보여줍니다.
+  {B}Stop-Process{R}는 프로세스를 종료합니다.
+
+  {B}📌 프로세스 목록 보기{R}
+{yl}  PS> Get-Process{R}
+{yl}  PS> ps{R}         ← 별칭
+{yl}  PS> gps{R}        ← 별칭
+
+  {B}📌 특정 프로세스 검색{R}
+{yl}  PS> Get-Process notepad{R}
+{yl}  PS> Get-Process -Name "chrome*"{R}
+
+  {B}📌 CPU/메모리 정렬{R}
+{yl}  PS> Get-Process | Sort-Object CPU -Descending | Select-Object -First 5{R}
+  {DM}  CPU 사용량 상위 5개{R}
+
+  {B}📌 프로세스 종료{R}
+{yl}  PS> Stop-Process -Name notepad{R}
+{yl}  PS> Stop-Process -Id 1234{R}
+{yl}  PS> kill 1234{R}    ← 별칭
+
+  {B}⚠ 주의{R}
+  {rd}  • -Force 없이 종료하면 저장 확인 대화상자가 뜰 수 있습니다.{R}
+  {rd}  • 시스템 프로세스는 관리자 권한이 필요합니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "프로세스를 이름으로 종료하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "Stop-Process -Name notepad",
+                    "Kill-Process notepad",
+                    "End-Process -Name notepad",
+                    "Remove-Process notepad",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "Get-Process의 Unix 스타일 별칭은?",
+                "type": "input",
+                "answer": "ps",
+                "validate": lambda s: s.strip().lower() in ("ps", "gps"),
+            },
+        ],
+    },
+    {
+        "id": "ps_env",
+        "name": "$env: 환경변수",
+        "summary": "$env: 드라이브로 환경변수를 읽고 설정합니다.",
+        "content": f"""{CY}{B}  $env: — 환경변수{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  PowerShell에서는 {B}$env:{R} 드라이브를 통해 환경변수에 접근합니다.
+  Unix의 {cy}$VARNAME{R} / {cy}export{R}에 해당합니다.
+
+  {B}📌 환경변수 읽기{R}
+{yl}  PS> $env:PATH{R}            {DM}# PATH 출력{R}
+{yl}  PS> $env:USERNAME{R}        {DM}# 현재 사용자 이름{R}
+{yl}  PS> $env:COMPUTERNAME{R}    {DM}# 컴퓨터 이름{R}
+{yl}  PS> $env:TEMP{R}            {DM}# 임시 폴더 경로{R}
+
+  {B}📌 모든 환경변수 보기{R}
+{yl}  PS> Get-ChildItem Env:{R}
+{yl}  PS> ls env:{R}   ← 별칭
+
+  {B}📌 환경변수 설정 (현재 세션){R}
+{yl}  PS> $env:MY_VAR = "hello"{R}
+
+  {B}📌 영구적으로 설정{R}
+{yl}  PS> [System.Environment]::SetEnvironmentVariable("MY_VAR","hello","User"){R}
+  {DM}  "User" 또는 "Machine" (시스템 전체, 관리자 권한 필요){R}
+
+  {B}💡 팁{R}
+  {DM}  $env:PATH 에 경로 추가:{R}
+{yl}  PS> $env:PATH += ";C:\\mytools"{R}
+""",
+        "quizzes": [
+            {
+                "q": "PowerShell에서 PATH 환경변수를 출력하는 방법은?",
+                "type": "choice",
+                "choices": [
+                    "$env:PATH",
+                    "echo $PATH",
+                    "env PATH",
+                    "$PATH",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "모든 환경변수를 나열하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "Get-ChildItem Env:",
+                    "Show-Env",
+                    "List-Variables",
+                    "Get-Environment",
+                ],
+                "answer": 0,
+            },
+        ],
+    },
+    {
+        "id": "ps_compress",
+        "name": "Compress-Archive: 압축",
+        "summary": "Compress-Archive / Expand-Archive로 ZIP 파일을 만들고 풉니다.",
+        "content": f"""{CY}{B}  Compress-Archive — 압축/해제{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  PowerShell 5+ 내장 cmdlet으로 ZIP 파일을 다룰 수 있습니다.
+  Unix의 {cy}tar{R}/{cy}zip{R}에 해당합니다.
+
+  {B}📌 압축하기{R}
+{yl}  PS> Compress-Archive -Path .\\myfolder -DestinationPath archive.zip{R}
+{yl}  PS> Compress-Archive *.log -DestinationPath logs.zip{R}
+
+  {B}📌 기존 ZIP에 파일 추가{R}
+{yl}  PS> Compress-Archive -Path new.txt -DestinationPath archive.zip -Update{R}
+
+  {B}📌 압축 해제{R}
+{yl}  PS> Expand-Archive -Path archive.zip -DestinationPath .\\output{R}
+{yl}  PS> Expand-Archive archive.zip .\\output{R}   ← 간단 버전
+
+  {B}📌 강제 덮어쓰기{R}
+{yl}  PS> Expand-Archive archive.zip .\\output -Force{R}
+
+  {B}💡 Unix tar 비교{R}
+  {DM}  tar -czf  →  Compress-Archive{R}
+  {DM}  tar -xzf  →  Expand-Archive{R}
+  {DM}  tar -tf   →  (Get-Archive 없음, 직접 열어야 함){R}
+""",
+        "quizzes": [
+            {
+                "q": "ZIP 파일을 만드는 cmdlet은?",
+                "type": "choice",
+                "choices": [
+                    "Compress-Archive",
+                    "New-Archive",
+                    "Create-Zip",
+                    "Pack-Files",
+                ],
+                "answer": 0,
+            },
+            {
+                "q": "ZIP 파일을 해제하는 cmdlet은?",
+                "type": "input",
+                "answer": "Expand-Archive",
+                "validate": lambda s: "expand-archive" in s.lower(),
+            },
+        ],
+    },
+]
+
 # ── Lesson lookup ──────────────────────────────────────────────────────────────
-ALL_LESSONS = {"terminal": TERMINAL_LESSONS, "vim": VIM_LESSONS}
+ALL_LESSONS = {"terminal": TERMINAL_LESSONS, "vim": VIM_LESSONS, "powershell": POWERSHELL_LESSONS, "tmux": TMUX_LESSONS}
 
 def get_lesson(ltype: str, lid: str):
     for lesson in ALL_LESSONS[ltype]:
@@ -1996,7 +3181,7 @@ def show_lesson_list(ltype: str, lessons: list):
     """Show all lessons with completion status and let user pick one."""
     while True:
         clr()
-        label = "터미널" if ltype == "terminal" else "Vim"
+        label = {"terminal": "터미널", "vim": "Vim", "powershell": "PowerShell", "tmux": "tmux"}.get(ltype, ltype)
         total = len(lessons)
         done = learned_count(ltype)
         print(f"\n  {CY}{B}{label} 레슨 목록 ({done}/{total}){R}\n")
@@ -2018,7 +3203,7 @@ def show_lesson_list(ltype: str, lessons: list):
 
 def learning_menu(ltype: str):
     lessons = ALL_LESSONS[ltype]
-    label = "터미널 기초" if ltype == "terminal" else "Vim 에디터"
+    label = {"terminal": "터미널 기초", "vim": "Vim 에디터", "powershell": "PowerShell 기초", "tmux": "tmux 터미널 멀티플렉서"}.get(ltype, ltype)
     total = len(lessons)
 
     while True:
@@ -2074,18 +3259,21 @@ def review_menu():
 
     t_done = learned_count("terminal")
     v_done = learned_count("vim")
+    tm_done = learned_count("tmux")
     t_total = len(TERMINAL_LESSONS)
     v_total = len(VIM_LESSONS)
+    tm_total = len(TMUX_LESSONS)
 
     print(f"\n  {CY}{B}학습 내용 보기 / 복습{R}\n")
     hr()
     print(f"  {B}전체 진행도{R}")
-    print(f"  터미널 기초: {GR}{t_done}{R}/{t_total}")
-    print(f"  Vim 에디터:  {GR}{v_done}{R}/{v_total}")
+    print(f"  터미널 기초:  {GR}{t_done}{R}/{t_total}")
+    print(f"  Vim 에디터:   {GR}{v_done}{R}/{v_total}")
+    print(f"  tmux:         {GR}{tm_done}{R}/{tm_total}")
     hr()
 
     all_learned = []
-    for ltype_label, ltype_key, lessons in [("터미널", "terminal", TERMINAL_LESSONS), ("Vim", "vim", VIM_LESSONS)]:
+    for ltype_label, ltype_key, lessons in [("터미널", "terminal", TERMINAL_LESSONS), ("Vim", "vim", VIM_LESSONS), ("tmux", "tmux", TMUX_LESSONS)]:
         for lesson in lessons:
             info = p[ltype_key].get(lesson["id"])
             if info and info.get("learned"):
@@ -2141,7 +3329,7 @@ def review_menu():
     else:
         print(f"\n  {GR}👍 오늘 복습할 항목이 없습니다!{R}\n")
         upcoming = []
-        for ltype_key in ("terminal", "vim"):
+        for ltype_key in ("terminal", "vim", "tmux"):
             for lid, info in p[ltype_key].items():
                 if info.get("learned"):
                     nr = info.get("next_review", "9999")
@@ -2216,14 +3404,19 @@ def main_menu():
         clr()
         t_done = learned_count("terminal")
         v_done = learned_count("vim")
+        ps_done = learned_count("powershell")
+        tm_done = learned_count("tmux")
         t_total = len(TERMINAL_LESSONS)
         v_total = len(VIM_LESSONS)
+        ps_total = len(POWERSHELL_LESSONS)
+        tm_total = len(TMUX_LESSONS)
         due = get_due()
         due_count = len(due)
 
+        title = "PowerShell 학습 도우미" if IS_WINDOWS else "터미널 학습 도우미 "
         print(f"""
   {CY}{B}┌─────────────────────────────────────────┐{R}
-  {CY}{B}│      터미널 학습 도우미  v2.0           │{R}
+  {CY}{B}│      {title} v2.0           │{R}
   {CY}{B}└─────────────────────────────────────────┘{R}
 """)
 
@@ -2231,11 +3424,20 @@ def main_menu():
             print(f"  {YL}📌 오늘 복습할 항목: {due_count}개{R}\n")
 
         hr()
-        print(f"  {cy}1.{R} 터미널 기초 학습      {DM}({GR}{t_done}{DM}/{t_total}){R}")
-        print(f"  {cy}2.{R} Vim 에디터 학습        {DM}({GR}{v_done}{DM}/{v_total}){R}")
-        print(f"  {cy}3.{R} 학습 내용 보기 / 복습  {DM}{'(' + YL + '📌 ' + str(due_count) + '개' + R + DM + ')' if due_count else ''}{R}")
-        print(f"  {cy}4.{R} 설정")
-        print(f"  {cy}0.{R} 종료")
+        if IS_WINDOWS:
+            print(f"  {cy}1.{R} PowerShell 기초 학습   {DM}({GR}{ps_done}{DM}/{ps_total}){R}")
+            print(f"  {cy}2.{R} 터미널 기초 학습        {DM}({GR}{t_done}{DM}/{t_total}){R}")
+            print(f"  {cy}3.{R} Vim 에디터 학습         {DM}({GR}{v_done}{DM}/{v_total}){R}")
+            print(f"  {cy}4.{R} 학습 내용 보기 / 복습   {DM}{'(' + YL + '📌 ' + str(due_count) + '개' + R + DM + ')' if due_count else ''}{R}")
+            print(f"  {cy}5.{R} 설정")
+            print(f"  {cy}0.{R} 종료")
+        else:
+            print(f"  {cy}1.{R} 터미널 기초 학습      {DM}({GR}{t_done}{DM}/{t_total}){R}")
+            print(f"  {cy}2.{R} Vim 에디터 학습        {DM}({GR}{v_done}{DM}/{v_total}){R}")
+            print(f"  {cy}3.{R} tmux 학습              {DM}({GR}{tm_done}{DM}/{tm_total}){R}")
+            print(f"  {cy}4.{R} 학습 내용 보기 / 복습  {DM}{'(' + YL + '📌 ' + str(due_count) + '개' + R + DM + ')' if due_count else ''}{R}")
+            print(f"  {cy}5.{R} 설정")
+            print(f"  {cy}0.{R} 종료")
         hr()
 
         print(f"\n  선택: ", end="", flush=True)
@@ -2245,17 +3447,34 @@ def main_menu():
         if choice == "0":
             print(f"\n  {GR}종료합니다. 오늘도 수고하셨습니다!{R}\n")
             sys.exit(0)
-        elif choice == "1":
-            learning_menu("terminal")
-        elif choice == "2":
-            learning_menu("vim")
-        elif choice == "3":
-            review_menu()
-        elif choice == "4":
-            settings_menu()
+        elif IS_WINDOWS:
+            if choice == "1":
+                learning_menu("powershell")
+            elif choice == "2":
+                learning_menu("terminal")
+            elif choice == "3":
+                learning_menu("vim")
+            elif choice == "4":
+                review_menu()
+            elif choice == "5":
+                settings_menu()
+            else:
+                print(f"\n  {rd}올바른 번호를 입력하세요 (0~5).{R}")
+                pause()
         else:
-            print(f"\n  {rd}올바른 번호를 입력하세요 (0~4).{R}")
-            pause()
+            if choice == "1":
+                learning_menu("terminal")
+            elif choice == "2":
+                learning_menu("vim")
+            elif choice == "3":
+                learning_menu("tmux")
+            elif choice == "4":
+                review_menu()
+            elif choice == "5":
+                settings_menu()
+            else:
+                print(f"\n  {rd}올바른 번호를 입력하세요 (0~5).{R}")
+                pause()
 
 
 if __name__ == "__main__":
