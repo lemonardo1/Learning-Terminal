@@ -5,25 +5,35 @@
 
 ## 특징
 
-- **터미널 명령어 학습** — `pwd`, `ls`, `cd`, `cp`, `mv`, `rm` 등 필수 명령어
+- **터미널 명령어 학습** — `pwd`, `ls`, `cd`, `cp`, `mv`, `rm`, 리디렉션, alias, Git 등 28개 레슨
 - **Vim 학습** — 기본 조작부터 실전 단축키까지
+- **tmux 학습** — 세션·윈도우·패인 분할 및 설정
 - **간격 반복 복습** — 학습한 내용을 최적의 주기(1→3→7→30→90일)로 자동 복습
 - **퀴즈** — 선택형 및 직접 입력형 문제로 확인
+- **TUI 애니메이션** — 스플래시 화면, 진행률 바, 완료 폭죽 등 인터랙티브 효과
 - **진도 저장** — 학습 기록이 로컬에 저장되어 이어서 공부 가능
 - **외부 의존성 없음** — Python 3 표준 라이브러리만 사용
 
 ## 요구 사항
 
 - Python 3.7 이상
-- macOS / Linux
+- macOS / Linux / Windows 10 이상
 
 ## 설치
 
-### 원클릭 설치 (권장)
+### 원클릭 설치 — macOS / Linux
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/lemonardo1/Learning-Terminal/main/install.sh | bash
 ```
+
+### 원클릭 설치 — Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/lemonardo1/Learning-Terminal/main/install.ps1 | iex
+```
+
+> Windows Terminal 또는 PowerShell 7 이상을 권장합니다.
 
 설치 후 `terminal` 명령어로 바로 실행할 수 있습니다.
 
@@ -55,8 +65,16 @@ terminal
 
 학습 진도와 설정은 아래 경로에 저장됩니다.
 
+**macOS / Linux**
 ```
 ~/.config/learning-terminal/
+├── config.json      # 설정
+└── progress.json    # 학습 진도
+```
+
+**Windows**
+```
+%APPDATA%\learning-terminal\
 ├── config.json      # 설정
 └── progress.json    # 학습 진도
 ```

@@ -86,6 +86,110 @@ def typewrite(text, duration=2.0):
             time.sleep(delay)
             i += 1
 
+# ── TUI Animations ────────────────────────────────────────────────────────────
+def animate_progress_bar(current: int, total: int, label: str = "", width: int = 38):
+    """현재/전체 비율로 진행률 바를 애니메이션으로 채운다."""
+    if total == 0:
+        return
+    steps = 25
+    for i in range(steps + 1):
+        pct = (current * i / steps) / total
+        filled = int(width * pct)
+        bar = f"{GR}{'█' * filled}{DM}{'░' * (width - filled)}{R}"
+        pct_int = int(pct * 100)
+        sys.stdout.write(f"\r  [{bar}] {GR}{pct_int:3d}%{R}  {label}")
+        sys.stdout.flush()
+        time.sleep(0.025)
+    print()
+
+def spinner(msg: str, duration: float = 1.0):
+    """로딩 스피너 애니메이션."""
+    frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    end_t = time.time() + duration
+    i = 0
+    while time.time() < end_t:
+        sys.stdout.write(f"\r  {CY}{frames[i % len(frames)]}{R}  {msg}")
+        sys.stdout.flush()
+        time.sleep(0.08)
+        i += 1
+    sys.stdout.write(f"\r  {GR}✓{R}  {msg}                \n")
+    sys.stdout.flush()
+
+def celebrate():
+    """레슨 완료 시 간단한 축하 애니메이션."""
+    lines = [
+        f"  {GR}★{R} {YL}★{R} {CY}★{R} {MG}★{R} {GR}★{R} {YL}★{R} {CY}★{R}",
+        f"  {YL}✦{R} {CY}✦{R} {MG}✦{R} {GR}✦{R} {YL}✦{R} {CY}✦{R} {MG}✦{R}",
+        f"  {CY}★{R} {MG}★{R} {GR}★{R} {YL}★{R} {CY}★{R} {MG}★{R} {GR}★{R}",
+    ]
+    for _ in range(4):
+        for line in lines:
+            sys.stdout.write(f"\r{line}")
+            sys.stdout.flush()
+            time.sleep(0.12)
+    print(f"\r  {GR}{B}🎉 완료! 모든 레슨을 마쳤습니다!{R}          ")
+
+def fireworks():
+    """카테고리 전체 완료 시 폭죽 애니메이션."""
+    clr()
+    stages = [
+        [
+            f"                    {YL}*{R}",
+            f"                   {YL}*{R} {YL}*{R}",
+            f"                  {YL}*{R} {YL}O{R} {YL}*{R}",
+            f"                   {YL}*{R} {YL}*{R}",
+        ],
+        [
+            f"    {CY}*{R}               {YL}*{R} {YL}*{R} {YL}*{R}",
+            f"   {CY}*{R}{CY}*{R}             {YL}*{R} {YL}O{R} {YL}*{R}    {MG}*{R}",
+            f"  {CY}*{R}{CY}O{R}{CY}*{R}            {YL}*{R} {YL}*{R} {YL}*{R}   {MG}*{R}{MG}*{R}",
+            f"   {CY}*{R}{CY}*{R}                        {MG}O{R}",
+        ],
+        [
+            f"  {GR}* * *{R}          {YL}* * *{R}       {MG}* *{R}",
+            f"  {GR}* O *{R}          {YL}* O *{R}       {MG}* O{R}",
+            f"  {GR}* * *{R}          {YL}* * *{R}       {MG}* *{R}",
+        ],
+    ]
+    for stage in stages:
+        clr()
+        print()
+        for line in stage:
+            print(line)
+        time.sleep(0.25)
+    clr()
+    print()
+    print(f"  {CY}{B}╔══════════════════════════════════════════╗{R}")
+    print(f"  {CY}{B}║{R}   {GR}{B}🎊  모든 레슨 완료!  축하합니다!  🎊{R}   {CY}{B}║{R}")
+    print(f"  {CY}{B}╚══════════════════════════════════════════╝{R}")
+    print()
+
+def splash_screen():
+    """시작 시 애니메이션 스플래시 화면."""
+    clr()
+    lines = [
+        f"  {CY}{B}╔═════════════════════════════════════════════╗{R}",
+        f"  {CY}{B}║                                             ║{R}",
+        f"  {CY}{B}║   {GR}터미널 학습 도우미{CY}  ·  {YL}v2.0{CY}             ║{R}",
+        f"  {CY}{B}║   {DM}Terminal Learning Assistant{CY}              ║{R}",
+        f"  {CY}{B}║                                             ║{R}",
+        f"  {CY}{B}╚═════════════════════════════════════════════╝{R}",
+    ]
+    for line in lines:
+        print(line)
+        time.sleep(0.08)
+    print()
+    items = [
+        ("터미널 기초 레슨", 0.35),
+        ("Vim 에디터 레슨", 0.30),
+        ("tmux 레슨", 0.25),
+        ("학습 데이터", 0.20),
+    ]
+    for label, dur in items:
+        spinner(label + " 로드 중...", dur)
+    time.sleep(0.2)
+    clr()
+
 # ── Storage paths ─────────────────────────────────────────────────────────────
 if IS_WINDOWS:
     CFG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "learning-terminal")
@@ -1445,6 +1549,308 @@ TERMINAL_LESSONS = [
                 "type": "choice",
                 "choices": ["-d :", "-s :", "-F :", "-t :"],
                 "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "redirect",
+        "name": "리디렉션: 입출력 방향 바꾸기",
+        "summary": "> >> < 2>&1 /dev/null 등으로 명령어의 입출력 방향을 바꿉니다.",
+        "content": f"""{CY}{B}  리디렉션 — 입출력 방향 바꾸기{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  터미널 명령어의 {cy}입력(stdin){R}, {cy}출력(stdout){R}, {cy}오류(stderr){R}를
+  파일이나 다른 명령어로 연결할 수 있습니다.
+
+  {B}📌 출력 리디렉션{R}
+{yl}  $ echo "hello" > file.txt{R}    {DM}# 파일에 쓰기 (덮어씀){R}
+{yl}  $ echo "world" >> file.txt{R}   {DM}# 파일에 추가 (append){R}
+{yl}  $ ls /etc > list.txt{R}         {DM}# ls 결과를 파일로{R}
+
+  {B}📌 오류(stderr) 리디렉션{R}
+{yl}  $ ls /없는폴더 2> err.txt{R}    {DM}# 오류 메시지만 파일로{R}
+{yl}  $ ls /없는폴더 2>&1{R}          {DM}# 오류를 stdout으로 합침{R}
+{yl}  $ cmd > out.txt 2>&1{R}         {DM}# stdout + stderr 모두 파일로{R}
+
+  {B}📌 /dev/null — 쓰레기통{R}
+{yl}  $ cmd > /dev/null{R}            {DM}# 출력 버리기{R}
+{yl}  $ cmd 2> /dev/null{R}           {DM}# 오류 버리기{R}
+{yl}  $ cmd > /dev/null 2>&1{R}       {DM}# 모든 출력 버리기{R}
+
+  {B}📌 입력 리디렉션{R}
+{yl}  $ sort < names.txt{R}           {DM}# 파일을 입력으로 사용{R}
+{yl}  $ wc -l < file.txt{R}           {DM}# 파일 줄 수 세기{R}
+
+  {B}📌 Here-document{R}
+{yl}  $ cat << EOF{R}
+{yl}  > 여러 줄{R}
+{yl}  > 입력{R}
+{yl}  > EOF{R}
+
+  {B}💡 팁{R}
+  {DM}  > 는 덮어쓰기, >> 는 추가. 중요한 파일에 실수로 > 쓰지 않도록!{R}
+  {DM}  2>&1 은 "stderr(2)를 stdout(1)으로 합쳐라" 는 뜻입니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "기존 파일에 내용을 추가(append)하는 리디렉션 기호는?",
+                "type": "choice",
+                "choices": [">", ">>", "<", "2>&1"],
+                "answer": 1,
+            },
+            {
+                "q": "모든 출력(stdout + stderr)을 버리는 명령어 형태는?",
+                "type": "choice",
+                "choices": [
+                    "cmd > /dev/null",
+                    "cmd 2> /dev/null",
+                    "cmd > /dev/null 2>&1",
+                    "cmd < /dev/null",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "alias_func",
+        "name": "alias: 나만의 단축 명령어",
+        "summary": "alias로 긴 명령어를 짧게 줄이고, ~/.bashrc 또는 ~/.zshrc에 저장해 영구 적용합니다.",
+        "content": f"""{CY}{B}  alias — 나만의 단축 명령어{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}alias{R}는 긴 명령어를 짧은 이름으로 등록합니다.
+  자주 쓰는 명령어를 단 두 글자로 줄일 수 있어요!
+
+  {B}📌 기본 사용법{R}
+{yl}  $ alias ll='ls -lah'{R}          {DM}# ll → ls -lah{R}
+{yl}  $ alias gs='git status'{R}       {DM}# gs → git status{R}
+{yl}  $ alias ..='cd ..'{R}            {DM}# .. → cd ..{R}
+{yl}  $ alias cls='clear'{R}           {DM}# cls → clear{R}
+
+  {B}📌 alias 목록 확인{R}
+{yl}  $ alias{R}                       {DM}# 등록된 alias 전체 목록{R}
+{yl}  $ alias ll{R}                    {DM}# 특정 alias 확인{R}
+
+  {B}📌 alias 삭제{R}
+{yl}  $ unalias ll{R}                  {DM}# 특정 alias 삭제{R}
+{yl}  $ unalias -a{R}                  {DM}# 모든 alias 삭제{R}
+
+  {B}📌 영구 저장 (쉘 설정 파일){R}
+{yl}  # ~/.zshrc 또는 ~/.bashrc 에 추가{R}
+{gr}  alias ll='ls -lah'{R}
+{gr}  alias gs='git status'{R}
+{gr}  alias gp='git push'{R}
+{yl}  $ source ~/.zshrc{R}             {DM}# 즉시 적용{R}
+
+  {B}📌 실용 alias 모음{R}
+{gr}  alias grep='grep --color=auto'{R}
+{gr}  alias mkdir='mkdir -pv'{R}
+{gr}  alias df='df -h'{R}
+{gr}  alias free='free -h'{R}
+
+  {B}💡 팁{R}
+  {DM}  alias에 공백이 있으면 작은따옴표로 묶으세요.{R}
+  {DM}  = 양쪽에 공백이 없어야 합니다: alias ll='ls -la' ✓{R}
+""",
+        "quizzes": [
+            {
+                "q": "alias 등록 시 = 양쪽에 공백이 있으면 어떻게 되나요?",
+                "type": "choice",
+                "choices": [
+                    "정상 동작한다",
+                    "오류가 발생한다",
+                    "공백이 자동으로 제거된다",
+                    "alias 이름에 포함된다",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "설정한 alias를 영구 적용하려면 어느 파일에 저장해야 하나요?",
+                "type": "choice",
+                "choices": [
+                    "/etc/hosts",
+                    "~/.profile만 가능",
+                    "~/.bashrc 또는 ~/.zshrc",
+                    "/usr/local/bin/alias",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "git_basics",
+        "name": "Git 기초: init · add · commit · log",
+        "summary": "Git으로 파일 변경을 추적하는 핵심 4단계 — init, add, commit, log를 익힙니다.",
+        "content": f"""{CY}{B}  Git 기초 — init · add · commit · log{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}Git{R}은 코드 변경 이력을 추적하는 {cy}버전 관리 시스템{R}입니다.
+  파일의 "스냅샷"을 찍어 언제든 과거로 되돌아갈 수 있습니다.
+
+  {B}📌 저장소 초기화{R}
+{yl}  $ git init{R}                    {DM}# 현재 폴더를 Git 저장소로{R}
+{yl}  $ git clone URL{R}               {DM}# 원격 저장소 복사{R}
+
+  {B}📌 변경 확인{R}
+{yl}  $ git status{R}                  {DM}# 변경된 파일 목록{R}
+{yl}  $ git diff{R}                    {DM}# 변경 내용 상세 비교{R}
+
+  {B}📌 스테이징 (add){R}
+{yl}  $ git add file.txt{R}            {DM}# 특정 파일 스테이징{R}
+{yl}  $ git add .{R}                   {DM}# 모든 변경 파일 스테이징{R}
+{yl}  $ git add -p{R}                  {DM}# 변경 부분별로 선택{R}
+
+  {B}📌 커밋 (commit){R}
+{yl}  $ git commit -m "메시지"{R}      {DM}# 스냅샷 저장{R}
+{yl}  $ git commit -am "메시지"{R}     {DM}# add + commit 한 번에{R}
+
+  {B}📌 이력 확인 (log){R}
+{yl}  $ git log{R}                     {DM}# 전체 커밋 이력{R}
+{yl}  $ git log --oneline{R}           {DM}# 한 줄씩 간략히{R}
+{yl}  $ git log --oneline --graph{R}   {DM}# 브랜치 그래프 포함{R}
+
+  {B}📌 Git 3단계 흐름{R}
+  {DM}  작업 디렉터리{R} → {cy}git add{R} → {DM}스테이지{R} → {cy}git commit{R} → {DM}저장소{R}
+
+  {B}💡 팁{R}
+  {DM}  커밋 메시지는 "무엇을 왜 했는지" 명확하게 쓰세요.{R}
+  {DM}  git status 를 습관적으로 확인하면 실수를 줄일 수 있습니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "스테이지에 올린 파일을 저장소에 기록하는 명령어는?",
+                "type": "choice",
+                "choices": ["git add", "git push", "git commit", "git save"],
+                "answer": 2,
+            },
+            {
+                "q": "커밋 이력을 한 줄씩 간략히 보는 명령어를 입력하세요.",
+                "type": "input",
+                "answer": "git log --oneline",
+                "validate": lambda s: s.strip() == "git log --oneline",
+            },
+        ],
+    },
+    {
+        "id": "git_branch",
+        "name": "Git 브랜치: branch · checkout · merge",
+        "summary": "Git 브랜치로 독립적인 작업 공간을 만들고, 완료 후 main에 병합합니다.",
+        "content": f"""{CY}{B}  Git 브랜치 — branch · checkout · merge{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}브랜치{R}는 main 코드를 건드리지 않고 새 기능을 개발하는 {cy}독립 작업 공간{R}입니다.
+
+  {B}📌 브랜치 생성 & 이동{R}
+{yl}  $ git branch feature{R}          {DM}# 브랜치 생성{R}
+{yl}  $ git checkout feature{R}        {DM}# 브랜치로 이동{R}
+{yl}  $ git checkout -b feature{R}     {DM}# 생성 + 이동 한 번에{R}
+{yl}  $ git switch -c feature{R}       {DM}# 최신 방식 (git 2.23+){R}
+
+  {B}📌 브랜치 목록 확인{R}
+{yl}  $ git branch{R}                  {DM}# 로컬 브랜치 목록{R}
+{yl}  $ git branch -a{R}               {DM}# 원격 포함 전체 목록{R}
+
+  {B}📌 병합 (merge){R}
+{yl}  $ git checkout main{R}           {DM}# main으로 돌아오기{R}
+{yl}  $ git merge feature{R}           {DM}# feature를 main에 합치기{R}
+
+  {B}📌 브랜치 삭제{R}
+{yl}  $ git branch -d feature{R}       {DM}# 병합된 브랜치 삭제{R}
+{yl}  $ git branch -D feature{R}       {DM}# 강제 삭제{R}
+
+  {B}📌 일반적인 브랜치 워크플로{R}
+  {gr}① main{R} 브랜치에서 {cy}git checkout -b feature/로그인{R}
+  {gr}② 기능 개발 후 {cy}git add . && git commit -m "..."{R}
+  {gr}③ {cy}git checkout main && git merge feature/로그인{R}
+  {gr}④ {cy}git branch -d feature/로그인{R}
+
+  {B}💡 팁{R}
+  {DM}  브랜치 이름은 feature/기능명, fix/버그명 형식이 관례입니다.{R}
+  {DM}  merge 전 반드시 git status 로 변경사항이 없는지 확인하세요.{R}
+""",
+        "quizzes": [
+            {
+                "q": "브랜치를 생성하면서 동시에 그 브랜치로 이동하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "git branch -m feature",
+                    "git checkout feature",
+                    "git checkout -b feature",
+                    "git branch --move feature",
+                ],
+                "answer": 2,
+            },
+            {
+                "q": "feature 브랜치를 main에 병합할 때 main에서 실행하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "git pull feature",
+                    "git merge feature",
+                    "git join feature",
+                    "git rebase main",
+                ],
+                "answer": 1,
+            },
+        ],
+    },
+    {
+        "id": "df_du",
+        "name": "df & du: 디스크 사용량 확인",
+        "summary": "df로 전체 디스크 용량을, du로 특정 폴더/파일 크기를 확인합니다.",
+        "content": f"""{CY}{B}  df & du — 디스크 사용량 확인{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}df{R} = {CY}Disk Free{R} (전체 디스크 현황)
+  {B}du{R} = {CY}Disk Usage{R} (특정 경로 사용량)
+
+  {B}📌 df — 전체 디스크 현황{R}
+{yl}  $ df -h{R}                       {DM}# 사람이 읽기 쉬운 단위(G/M/K){R}
+{yl}  $ df -h /{R}                     {DM}# 루트 파티션만{R}
+
+  {B}📌 df 출력 예시{R}
+{DM}  Filesystem   Size  Used  Avail  Use%  Mounted on{R}
+{gr}  /dev/disk1  500G  120G   380G   24%  /{R}
+
+  {B}📌 du — 폴더/파일 크기{R}
+{yl}  $ du -sh ~/Documents{R}          {DM}# 폴더 전체 크기 요약{R}
+{yl}  $ du -sh *{R}                    {DM}# 현재 폴더 항목별 크기{R}
+{yl}  $ du -sh * | sort -h{R}          {DM}# 크기 순 정렬{R}
+{yl}  $ du -h --max-depth=1{R}         {DM}# 1단계 깊이만 (Linux){R}
+{yl}  $ du -hd 1{R}                    {DM}# 1단계 깊이만 (macOS){R}
+
+  {B}📌 가장 큰 폴더 찾기{R}
+{yl}  $ du -sh * | sort -rh | head -10{R}  {DM}# 상위 10개{R}
+
+  {B}📌 df vs du{R}
+  {cy}df{R}  파티션 전체 남은 공간 → "전체 디스크가 얼마나 찼나?"
+  {cy}du{R}  특정 경로 실제 사용 → "이 폴더가 얼마나 차지하나?"
+
+  {B}💡 팁{R}
+  {DM}  -h 옵션은 human-readable. 숫자가 K/M/G로 보기 좋게 나옵니다.{R}
+  {DM}  du -sh * | sort -rh 조합으로 용량 잡아먹는 폴더를 빠르게 찾을 수 있어요.{R}
+""",
+        "quizzes": [
+            {
+                "q": "현재 폴더의 항목별 크기를 사람이 읽기 쉬운 단위로 보고, 크기순으로 정렬하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "df -h | sort",
+                    "du -sh * | sort -rh",
+                    "ls -lh | sort",
+                    "du -a | sort -n",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "df와 du의 차이로 올바른 것은?",
+                "type": "choice",
+                "choices": [
+                    "df는 파일 크기, du는 디렉터리 크기만 본다",
+                    "df는 파티션 전체 현황, du는 특정 경로 사용량을 본다",
+                    "df는 macOS 전용, du는 Linux 전용이다",
+                    "차이 없이 동일한 명령어이다",
+                ],
+                "answer": 1,
             },
         ],
     },
@@ -3165,6 +3571,10 @@ def run_lesson_flow(ltype: str, lesson: dict) -> bool:
         passed = score >= 1
         if passed:
             mark_learned(ltype, lesson["id"])
+            done = learned_count(ltype)
+            total = len(ALL_LESSONS[ltype])
+            print()
+            animate_progress_bar(done, total, f"{GR}완료{R} {done}/{total}")
             print(f"  {GR}✓ 통과! 복습 큐에 추가됨{R}")
             return True
         else:
@@ -3191,15 +3601,22 @@ def show_lesson_list(ltype: str, lessons: list):
             print(f"  {status} {cy}{idx+1:2}.{R} {lesson['name']}")
         print(f"\n  {DM}0. 뒤로 가기{R}")
         hr()
-        raw = input(f"\n  번호 선택: ").strip()
+        # 다음 미완료 레슨 계산 (Enter 기본값용)
+        next_unlearned = next((l for l in lessons if not is_learned(ltype, l["id"])), None)
+        hint = f" {DM}(Enter = 다음 레슨){R}" if next_unlearned else ""
+        raw = input(f"\n  번호 선택{hint}: ").strip()
         if raw == "0":
             return
-        if raw.isdigit() and 1 <= int(raw) <= total:
+        if raw == "" and next_unlearned:
+            chosen = next_unlearned
+        elif raw.isdigit() and 1 <= int(raw) <= total:
             chosen = lessons[int(raw)-1]
-            run_lesson_flow(ltype, chosen)
-            cont = input(f"\n  계속 학습하시겠습니까? [\033[4mY\033[0m/n]: ").strip().lower()
-            if cont not in ("", "y"):
-                return
+        else:
+            continue
+        run_lesson_flow(ltype, chosen)
+        cont = input(f"\n  계속 학습하시겠습니까? [\033[4mY\033[0m/n]: ").strip().lower()
+        if cont not in ("", "y"):
+            return
 
 def learning_menu(ltype: str):
     lessons = ALL_LESSONS[ltype]
@@ -3221,7 +3638,12 @@ def learning_menu(ltype: str):
 
         hr()
         if next_lesson is None:
-            print(f"\n  {GR}🎉 모두 완료! 모든 레슨을 학습했습니다.{R}\n")
+            fireworks()
+            pause()
+            clr()
+            done2 = learned_count(ltype)
+            total2 = len(lessons)
+            print(f"\n  [{GR}{'█' * 38}{R}] {GR}100%{R}  {done2}/{total2}\n")
         else:
             print(f"  {B}다음 레슨:{R} {CY}{next_lesson['name']}{R}\n")
         print(f"  {cy}1.{R} 학습 시작" + (f" — {next_lesson['name']}" if next_lesson else ""))
@@ -3479,6 +3901,7 @@ def main_menu():
 
 if __name__ == "__main__":
     try:
+        splash_screen()
         main_menu()
     except KeyboardInterrupt:
         print(f"\n\n  {GR}종료합니다.{R}\n")
