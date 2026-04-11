@@ -3899,10 +3899,14 @@ def main_menu():
                 pause()
 
 
-if __name__ == "__main__":
+def main():
+    """pip install 후 console_scripts 진입점."""
     try:
         splash_screen()
         main_menu()
     except KeyboardInterrupt:
         print(f"\n\n  {GR}종료합니다.{R}\n")
         sys.exit(0)
+
+if __name__ == "__main__":
+    main()

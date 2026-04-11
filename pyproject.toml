@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learning-terminal"
+version = "2.1.0"
+description = "터미널·Vim·tmux·Git을 대화형 퀴즈로 배우는 CLI 학습 프로그램"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.7"
+keywords = ["terminal", "vim", "tmux", "git", "learning", "education", "cli", "korean"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Education",
+    "Natural Language :: Korean",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: Terminals",
+]
+
+[project.urls]
+Homepage = "https://github.com/lemonardo1/Learning-Terminal"
+Repository = "https://github.com/lemonardo1/Learning-Terminal"
+"Bug Tracker" = "https://github.com/lemonardo1/Learning-Terminal/issues"
+
+[project.scripts]
+learning-terminal = "learning_terminal:main"
+
+[tool.setuptools]
+py-modules = ["learning_terminal"]
