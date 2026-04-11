@@ -1854,6 +1854,315 @@ TERMINAL_LESSONS = [
             },
         ],
     },
+    {
+        "id": "sort_uniq",
+        "name": "sort & uniq: 정렬과 중복 제거",
+        "summary": "sort로 줄을 정렬하고, uniq로 중복 줄을 제거합니다. 조합하면 강력한 텍스트 분석 도구가 됩니다.",
+        "content": f"""{CY}{B}  sort & uniq — 정렬과 중복 제거{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}sort{R} — 줄을 정렬  |  {B}uniq{R} — 연속된 중복 줄 처리
+
+  {B}📌 sort 기본 사용법{R}
+{yl}  $ sort file.txt{R}            {DM}# 알파벳 오름차순{R}
+{yl}  $ sort -r file.txt{R}         {DM}# 내림차순{R}
+{yl}  $ sort -n file.txt{R}         {DM}# 숫자 정렬 (10이 9 뒤로){R}
+{yl}  $ sort -k2 file.txt{R}        {DM}# 2번째 필드 기준 정렬{R}
+{yl}  $ sort -u file.txt{R}         {DM}# 정렬 + 중복 제거 (-u = unique){R}
+
+  {B}📌 uniq 기본 사용법{R}
+{yl}  $ sort file.txt | uniq{R}     {DM}# 중복 줄 제거 (sort 먼저 필요){R}
+{yl}  $ sort file.txt | uniq -c{R}  {DM}# 각 줄 등장 횟수 출력{R}
+{yl}  $ sort file.txt | uniq -d{R}  {DM}# 중복된 줄만 출력{R}
+{yl}  $ sort file.txt | uniq -u{R}  {DM}# 유일한 줄만 출력{R}
+
+  {B}📌 실전 조합{R}
+{yl}  # 가장 많이 등장하는 단어 TOP 5{R}
+{yl}  $ cat log.txt | sort | uniq -c | sort -rn | head -5{R}
+
+{yl}  # 접속한 IP 중 중복 제거 후 몇 개인지{R}
+{yl}  $ awk '{{print $1}}' access.log | sort -u | wc -l{R}
+
+  {B}💡 팁{R}
+  {DM}  uniq는 인접한 줄만 비교합니다. 반드시 sort 먼저!{R}
+  {DM}  sort -u 는 sort | uniq 와 동일하지만 한 명령어로 처리됩니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "uniq -c 옵션이 하는 역할은?",
+                "type": "choice",
+                "choices": [
+                    "중복 줄을 제거한다",
+                    "각 줄의 등장 횟수를 앞에 출력한다",
+                    "대소문자 구분 없이 중복을 처리한다",
+                    "빈 줄을 제거한다",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "숫자가 담긴 파일을 내림차순으로 정렬하는 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "sort -d file.txt",
+                    "sort -rn file.txt",
+                    "sort -z file.txt",
+                    "sort --desc file.txt",
+                ],
+                "answer": 1,
+            },
+        ],
+    },
+    {
+        "id": "xargs",
+        "name": "xargs: 파이프 인수 전달",
+        "summary": "xargs는 stdin 입력을 다른 명령어의 인수로 변환합니다. 파이프와 함께 쓰면 강력합니다.",
+        "content": f"""{CY}{B}  xargs — 파이프 인수 전달{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  일부 명령어는 파이프로 stdin을 받지 못합니다.
+  {B}xargs{R}는 stdin을 {cy}명령어의 인수(argument){R}로 변환해줍니다.
+
+  {B}📌 기본 원리{R}
+{yl}  $ echo "file1 file2 file3" | xargs rm{R}
+  {DM}  → rm file1 file2 file3 실행{R}
+
+  {B}📌 실전 예시{R}
+{yl}  $ find . -name "*.log" | xargs rm{R}        {DM}# 모든 .log 삭제{R}
+{yl}  $ find . -name "*.py" | xargs wc -l{R}      {DM}# py 파일 줄 수 합산{R}
+{yl}  $ cat urls.txt | xargs curl -O{R}           {DM}# URL 목록 일괄 다운로드{R}
+{yl}  $ ls *.txt | xargs grep "error"{R}          {DM}# 여러 파일에서 검색{R}
+
+  {B}📌 주요 옵션{R}
+  {gr}xargs -n 1{R}    한 번에 인수 1개씩 전달
+  {gr}xargs -P 4{R}    4개 프로세스로 병렬 실행
+  {gr}xargs -I{R} {{}}  인수 위치를 직접 지정
+  {gr}xargs -p{R}      실행 전 확인 프롬프트
+
+  {B}📌 -I {{}} 위치 지정 예시{R}
+{yl}  $ ls *.txt | xargs -I {{}} cp {{}} backup/{R}
+  {DM}  → 각 .txt 파일을 backup/ 폴더로 복사{R}
+
+{yl}  $ cat ids.txt | xargs -I {{}} -n1 curl "api.com/user/{{}}" {R}
+
+  {B}💡 팁{R}
+  {DM}  파일명에 공백이 있으면 find -print0 | xargs -0 조합을 쓰세요.{R}
+  {DM}  -P 옵션으로 병렬 처리하면 대량 작업이 훨씬 빨라집니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "xargs가 하는 역할로 가장 정확한 것은?",
+                "type": "choice",
+                "choices": [
+                    "파이프라인을 병렬로 실행한다",
+                    "stdin 입력을 명령어의 인수(argument)로 변환한다",
+                    "여러 명령어를 순차 실행한다",
+                    "명령어 실행 결과를 파일로 저장한다",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "find . -name '*.log' 결과를 rm 명령어에 넘겨 삭제하는 파이프 명령어는?",
+                "type": "input",
+                "answer": "find . -name '*.log' | xargs rm",
+                "validate": lambda s: "xargs" in s and "rm" in s and "find" in s,
+            },
+        ],
+    },
+    {
+        "id": "rsync",
+        "name": "rsync: 효율적인 파일 동기화",
+        "summary": "rsync는 변경된 부분만 전송하는 고효율 파일 동기화·백업 도구입니다. 로컬·원격 모두 지원합니다.",
+        "content": f"""{CY}{B}  rsync — 효율적인 파일 동기화{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}rsync{R}는 {cy}변경된 파일만{R} 전송하는 스마트 복사 도구입니다.
+  cp보다 빠르고, SSH를 통한 원격 동기화도 지원합니다.
+
+  {B}📌 기본 문법{R}
+{yl}  $ rsync [옵션] 출발지 목적지{R}
+
+  {B}📌 로컬 동기화{R}
+{yl}  $ rsync -av src/ dst/{R}         {DM}# src 내용을 dst에 동기화{R}
+{yl}  $ rsync -av --delete src/ dst/{R} {DM}# dst에서 src에 없는 파일 삭제{R}
+{yl}  $ rsync -av --dry-run src/ dst/{R} {DM}# 실제 실행 없이 미리보기{R}
+
+  {B}📌 원격 동기화 (SSH){R}
+{yl}  $ rsync -avz src/ user@host:~/dst/{R}   {DM}# 로컬 → 원격{R}
+{yl}  $ rsync -avz user@host:~/src/ dst/{R}   {DM}# 원격 → 로컬{R}
+
+  {B}📌 주요 옵션{R}
+  {gr}rsync -a{R}   archive 모드 (권한·날짜·심볼릭링크 보존)
+  {gr}rsync -v{R}   verbose (진행 상황 출력)
+  {gr}rsync -z{R}   전송 시 압축 (원격에 유리)
+  {gr}rsync -P{R}   진행률 표시 + 중단된 전송 재개
+  {gr}rsync -n{R}   dry-run (실제 파일 변경 없음)
+
+  {B}📌 백업 스크립트 예시{R}
+{yl}  $ rsync -avz --delete ~/Documents/ user@nas:~/backup/docs/{R}
+
+  {B}📌 rsync vs cp{R}
+  {cy}cp{R}   항상 전체 복사, 원격 불가
+  {cy}rsync{R} 변경분만 전송, 원격 지원, 중단 재개 가능
+
+  {B}💡 팁{R}
+  {DM}  출발지 끝에 / 유무가 중요합니다:{R}
+  {DM}  src/  → src 안의 내용을 복사{R}
+  {DM}  src   → src 폴더 자체를 복사 (dst/src/ 가 됨){R}
+""",
+        "quizzes": [
+            {
+                "q": "rsync에서 전송 전 변경 내용을 미리 확인(실제 실행 없음)하는 옵션은?",
+                "type": "choice",
+                "choices": ["--preview", "--dry-run", "--check", "--simulate"],
+                "answer": 1,
+            },
+            {
+                "q": "rsync -a 옵션(archive 모드)이 보존하는 것은?",
+                "type": "choice",
+                "choices": [
+                    "파일 이름만",
+                    "파일 크기만",
+                    "권한·날짜·심볼릭링크 등 메타데이터",
+                    "파일 내용의 체크섬",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "jq",
+        "name": "jq: JSON 처리",
+        "summary": "jq는 커맨드라인에서 JSON을 파싱·필터링·변환하는 도구입니다. API 응답 처리에 필수입니다.",
+        "content": f"""{CY}{B}  jq — JSON 처리{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}jq{R}는 JSON을 커맨드라인에서 다루는 도구입니다.
+  {cy}curl API 응답{R}을 보기 좋게 출력하거나 원하는 필드만 추출합니다.
+
+  {B}📌 설치{R}
+{yl}  $ brew install jq{R}          {DM}# macOS{R}
+{yl}  $ sudo apt install jq{R}      {DM}# Ubuntu/Debian{R}
+
+  {B}📌 기본 사용법{R}
+{yl}  $ echo '{{"name":"Alice","age":30}}' | jq '.'{R}  {DM}# 예쁘게 출력{R}
+{yl}  $ echo '{{"name":"Alice","age":30}}' | jq '.name'{R}  {DM}# name 필드{R}
+{yl}  $ cat data.json | jq '.users[0]'{R}   {DM}# 배열 첫 번째 요소{R}
+
+  {B}📌 자주 쓰는 필터{R}
+{yl}  $ jq '.[]'{R}                  {DM}# 배열 전체 순회{R}
+{yl}  $ jq '.[].name'{R}             {DM}# 배열 각 요소의 name 필드{R}
+{yl}  $ jq 'length'{R}               {DM}# 배열 길이{R}
+{yl}  $ jq 'keys'{R}                 {DM}# 객체의 키 목록{R}
+{yl}  $ jq 'select(.age > 20)'{R}    {DM}# 조건 필터링{R}
+
+  {B}📌 curl + jq 실전 조합{R}
+{yl}  $ curl -s https://api.github.com/users/octocat | jq '.name'{R}
+{yl}  $ curl -s URL | jq '.items[] | .title'{R}  {DM}# 배열 내 title만 추출{R}
+
+  {B}📌 유용한 옵션{R}
+  {gr}jq -r{R}   raw output (따옴표 없이 출력)
+  {gr}jq -c{R}   compact output (한 줄로)
+  {gr}jq -e{R}   필터 실패 시 종료코드 1
+
+  {B}💡 팁{R}
+  {DM}  jq '.' 만으로도 JSON 예쁘게 출력(pretty-print)이 됩니다.{R}
+  {DM}  -r 옵션으로 스크립트에서 값을 변수로 받을 수 있습니다:{R}
+  {DM}  name=$(curl -s URL | jq -r '.name'){R}
+""",
+        "quizzes": [
+            {
+                "q": "curl API 응답에서 .items 배열의 각 .title만 추출하는 jq 명령어는?",
+                "type": "choice",
+                "choices": [
+                    "jq '.items.title'",
+                    "jq '.items[] | .title'",
+                    "jq '.items[title]'",
+                    "jq 'select(.items.title)'",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "jq -r 옵션의 역할은?",
+                "type": "choice",
+                "choices": [
+                    "재귀적으로 모든 키를 출력한다",
+                    "원격 URL에서 JSON을 가져온다",
+                    "결과를 따옴표 없이 raw 텍스트로 출력한다",
+                    "읽기 전용으로 파일을 연다",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
+    {
+        "id": "crontab",
+        "name": "crontab: 작업 스케줄링",
+        "summary": "cron은 특정 시각/주기에 명령어를 자동 실행하는 스케줄러입니다. crontab으로 등록·관리합니다.",
+        "content": f"""{CY}{B}  crontab — 작업 스케줄링{R}
+{DM}  ─────────────────────────────────────────────{R}
+
+  {B}cron{R}은 지정한 시간에 명령어를 자동으로 실행하는 데몬입니다.
+  {B}crontab{R}으로 스케줄을 등록·수정·삭제합니다.
+
+  {B}📌 crontab 관리 명령어{R}
+{yl}  $ crontab -e{R}               {DM}# 스케줄 편집 (vim 열림){R}
+{yl}  $ crontab -l{R}               {DM}# 현재 스케줄 목록 확인{R}
+{yl}  $ crontab -r{R}               {DM}# 모든 스케줄 삭제 (주의!){R}
+
+  {B}📌 cron 표현식 형식{R}
+{gr}  분  시  일  월  요일  명령어{R}
+{gr}  *   *   *   *   *     command{R}
+
+  {B}📌 각 필드 범위{R}
+  {cy}분{R}     0-59
+  {cy}시{R}     0-23
+  {cy}일{R}     1-31
+  {cy}월{R}     1-12
+  {cy}요일{R}   0-7  (0,7=일요일, 1=월요일)
+
+  {B}📌 자주 쓰는 패턴{R}
+{yl}  0 9 * * *{R}         {DM}# 매일 오전 9시{R}
+{yl}  */10 * * * *{R}      {DM}# 10분마다{R}
+{yl}  0 0 * * 0{R}         {DM}# 매주 일요일 자정{R}
+{yl}  0 9 1 * *{R}         {DM}# 매월 1일 오전 9시{R}
+{yl}  30 18 * * 1-5{R}     {DM}# 평일(월~금) 오후 6시 30분{R}
+
+  {B}📌 실전 예시 (crontab -e 에 입력){R}
+{gr}  # 매일 자정 백업 스크립트 실행{R}
+{gr}  0 0 * * * /home/user/backup.sh >> /var/log/backup.log 2>&1{R}
+{gr}  # 5분마다 서버 상태 체크{R}
+{gr}  */5 * * * * curl -s http://localhost/health > /dev/null{R}
+
+  {B}💡 팁{R}
+  {DM}  crontab -r 은 되돌릴 수 없습니다. 삭제 전 -l 로 백업하세요.{R}
+  {DM}  cron 작업의 출력은 기본적으로 이메일로 전송됩니다. 로그 파일로{R}
+  {DM}  리디렉션(>> log 2>&1)하는 것이 일반적입니다.{R}
+""",
+        "quizzes": [
+            {
+                "q": "매일 오전 9시에 실행되는 cron 표현식은?",
+                "type": "choice",
+                "choices": [
+                    "9 0 * * *",
+                    "0 9 * * *",
+                    "* 9 * * *",
+                    "0 0 9 * *",
+                ],
+                "answer": 1,
+            },
+            {
+                "q": "crontab -r 명령어가 하는 일은?",
+                "type": "choice",
+                "choices": [
+                    "마지막 cron 작업을 재실행한다",
+                    "cron 데몬을 재시작한다",
+                    "현재 사용자의 모든 cron 스케줄을 삭제한다",
+                    "cron 로그를 출력한다",
+                ],
+                "answer": 2,
+            },
+        ],
+    },
 ]
 
 # ── Tmux lessons ───────────────────────────────────────────────────────────────

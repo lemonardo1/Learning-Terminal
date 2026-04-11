@@ -42,3 +42,6 @@ env/
 
 # Node (레거시 파일용)
 node_modules/
+
+# PyPI 배포 자격증명 — 절대 커밋 금지
+.pypirc
